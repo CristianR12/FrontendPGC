@@ -39,12 +39,7 @@ export function Header({ title, showLogout = false, onLogout }: HeaderProps) {
           <button 
             onClick={onLogout} 
             className="btn-logout"
-            style={{ 
-              padding: "8px 16px", 
-              fontSize: "0.9rem",
-              backgroundColor: "#d32f2f",
-              color: "white"
-            }}
+            
           >
             Cerrar Sesión
           </button>

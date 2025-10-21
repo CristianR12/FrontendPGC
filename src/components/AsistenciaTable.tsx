@@ -32,7 +32,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
       <table className="min-w-full border border-gray-300 rounded-lg">
         <thead className="bg-gray-100 text-gray-700">
           <tr>
-            <th className="px-4 py-2 text-left">ID</th>
+            
             <th className="px-4 py-2 text-left">Estudiante</th>
             <th className="px-4 py-2 text-left">Asignatura</th>
             <th className="px-4 py-2 text-left">Fecha y Hora</th>
@@ -44,7 +44,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
           {asistencias.length > 0 ? (
             asistencias.map((a) => (
               <tr key={a.id} className="border-t hover:bg-gray-50 transition">
-                <td className="px-4 py-2">{a.id}</td>
+                
                 <td className="px-4 py-2">{a.estudiante}</td>
                 <td className="px-4 py-2">{a.asignatura || 'N/A'}</td>
                 <td className="px-4 py-2">{formatFecha(a.fechaYhora)}</td>
@@ -62,7 +62,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                     onClick={() => onEdit(a.id)}
                     style={{ 
                       marginRight: "5px",
-                      backgroundColor: "#2196F3",
+                      backgroundColor: "#62626196",
                       color: "white"
                     }}
                   >

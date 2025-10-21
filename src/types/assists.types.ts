@@ -1,8 +1,5 @@
 // src/types/asistencia.types.ts
 
-/**
- * Tipo principal de Asistencia
- */
 export interface Asistencia {
   id: string;
   estudiante: string;

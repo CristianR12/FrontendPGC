@@ -1,0 +1,226 @@
+
+
+
+/* Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: url('assets/imagenes/fondo.png') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      color: #000;
+    }
+
+    .cabecera {
+  position: relative; /* permite posicionar elementos dentro */
+  display: flex;
+  justify-content: space-between; /* imágenes a los extremos */
+  align-items: center;
+  padding: 20px;
+  margin-top: 30px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.logo-universidad {  
+  height: 50px;
+  width: auto;
+}
+
+.imagen-ia {
+  height: 150px;
+  width: auto;
+}
+
+.mensaje-central {
+  position: absolute;
+  left: 50%; /* lo mueve al centro horizontal */
+  transform: translateX(-50%); /* corrige el centrado */
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap; /* evita que se parta en varias líneas */
+}
+
+
+    .radios {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 30px 0 20px;
+    }
+    .radios label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 1.1rem;
+      background: rgba(255,255,255,0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .botones-accion {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .botones-accion button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #878b8f;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color .2s;
+    }
+    .botones-accion button:hover {
+      background-color: #35e46f;
+    }
+    /* Tarjeta de login */
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 35px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Títulos y subtítulos */
+.login-card h2 {
+  margin-bottom: 10px;
+  font-size: 1.6rem;
+  color: #2b2b2b;
+}
+
+.login-card p {
+  font-size: 1rem;
+  color: #444;
+  margin-bottom: 20px;
+}
+
+/* Campos de usuario y contraseña */
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.login-card input:focus {
+  border-color: #4285F4;
+  box-shadow: 0 0 5px rgba(66,133,244,0.5);
+}
+
+/* Botón de login clásico */
+.login-card .btn-login {
+  background-color: #2b7a78;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 15px;
+  transition: background-color 0.3s ease;
+}
+
+.login-card .btn-login:hover {
+  background-color: #205d5b;
+}
+
+/* Botón Google */
+.btn-google {
+  background-color: #4285F4;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-google:hover {
+  background-color: #357ae8;
+}
+
+.btn-google img {
+  width: 20px;
+  height: 20px;
+}
+
+
+    body > div:not(.cabecera):not(.popup-overlay):not(.botones-accion):not(.radios) {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 90%;
+      background: rgba(255,255,255,0.9);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #878b8f;
+      color: #fff;
+    }
+
+    button {
+      margin: 6px;
+      padding: 6px 14px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #888888;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #32cc53;
+    }
+
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .popup {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }

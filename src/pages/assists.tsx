@@ -10,13 +10,6 @@ import { AsistenciaTable } from '../components/AsistenciaTable';
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 
-/**
- * AsistenciasPage - Listado y gestión de asistencias
- * Incluye:
- * - Filtros por asignatura
- * - Botones para editar y eliminar
- * - Navegación a reportes y nueva asistencia
- */
 export function AsistenciasPage() {
   const navigate = useNavigate();
   
@@ -58,7 +51,7 @@ export function AsistenciasPage() {
     try {
       await asistenciaService.delete(id);
       alert('Asistencia eliminada correctamente');
-      cargarAsistencias(); // Recargar lista
+      cargarAsistencias();
     } catch (err: any) {
       alert('Error al eliminar: ' + err.message);
     }
@@ -68,7 +61,6 @@ export function AsistenciasPage() {
     navigate(`/asistencias/editar/${id}`);
   };
 
-  // Filtrar asistencias por asignatura
   const asistenciasFiltradas = filtroAsignatura
     ? asistencias.filter(a => a.asignatura === filtroAsignatura)
     : asistencias;
@@ -81,42 +73,56 @@ export function AsistenciasPage() {
       <Header title="Gestión de Asistencias" showLogout={true} onLogout={handleLogout} />
       
       <div style={{ padding: '40px' }}>
-        {/* Cabecera con botones */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          marginBottom: '30px' 
+          marginBottom: '30px',
+          flexWrap: 'wrap',
+          gap: '15px'
         }}>
           <h2>Listado de Asistencias ({asistenciasFiltradas.length})</h2>
           
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button 
-              className="btn-secondary"
               onClick={() => navigate('/home')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#9e9e9e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
             >
               🏠 Dashboard
             </button>
             
             <button 
-              className="btn-primary"
-              onClick={() => navigate('/asistencias/nueva')}
-            >
-              ➕ Nueva Asistencia
-            </button>
-            
-            <button 
-              className="btn-success"
               onClick={() => navigate('/reportes')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
             >
-              📄 Generar Reportes
+              📄 Reportes
             </button>
           </div>
         </div>
 
-        {/* Filtros por asignatura */}
-        <div className="radios" style={{ marginBottom: '20px' }}>
-          <label>
+        {/* Filtros */}
+        <div style={{ 
+          marginBottom: '20px',
+          display: 'flex',
+          gap: '15px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="radio"
               name="asignaturaFiltro"
@@ -125,7 +131,7 @@ export function AsistenciasPage() {
             />
             Todas
           </label>
-          <label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="radio"
               name="asignaturaFiltro"
@@ -135,7 +141,7 @@ export function AsistenciasPage() {
             />
             Matemáticas
           </label>
-          <label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="radio"
               name="asignaturaFiltro"
@@ -145,7 +151,7 @@ export function AsistenciasPage() {
             />
             Física
           </label>
-          <label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="radio"
               name="asignaturaFiltro"
@@ -157,7 +163,6 @@ export function AsistenciasPage() {
           </label>
         </div>
 
-        {/* Tabla de asistencias */}
         <AsistenciaTable
           asistencias={asistenciasFiltradas}
           onDelete={handleDelete}

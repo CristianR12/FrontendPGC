@@ -9,10 +9,6 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { DashboardCard } from "../components/DashboardCard";
 import asistenciaService from "../services/asistenciaService";
 
-/**
- * HomePage - Dashboard del administrador
- * Muestra estadísticas clave y accesos rápidos
- */
 export function HomePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -72,7 +68,7 @@ export function HomePage() {
       <Header title="Dashboard de Administración" showLogout={true} onLogout={handleLogout} />
       
       <div style={{ padding: "40px", maxWidth: "1200px", margin: "0 auto" }}>
-        <h2 style={{ marginBottom: "30px", textAlign: "center" }}>
+        <h2 style={{ marginBottom: "30px", textAlign: "center", fontSize: "1.8rem" }}>
           Bienvenido, {auth.currentUser?.displayName || auth.currentUser?.email}
         </h2>
 
@@ -112,7 +108,7 @@ export function HomePage() {
           />
         </div>
 
-        {/* Tasa de asistencia destacada */}
+        {/* Tasa de asistencia */}
         <div style={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
@@ -128,7 +124,7 @@ export function HomePage() {
           </p>
         </div>
 
-        {/* Botones de acción rápida */}
+        {/* Botones de acción */}
         <div style={{ 
           display: "flex", 
           justifyContent: "center", 
@@ -136,27 +132,33 @@ export function HomePage() {
           flexWrap: "wrap"
         }}>
           <button
-            className="btn-primary"
             onClick={() => navigate("/asistencias")}
-            style={{ padding: "15px 30px", fontSize: "1.1rem" }}
+            style={{ 
+              padding: "15px 30px", 
+              fontSize: "1.1rem",
+              backgroundColor: "#2196F3",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer"
+            }}
           >
             📊 Ver Asistencias
           </button>
           
           <button
-            className="btn-success"
             onClick={() => navigate("/reportes")}
-            style={{ padding: "15px 30px", fontSize: "1.1rem" }}
+            style={{ 
+              padding: "15px 30px", 
+              fontSize: "1.1rem",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer"
+            }}
           >
             📄 Generar Reportes
-          </button>
-          
-          <button
-            className="btn-secondary"
-            onClick={() => navigate("/asistencias/nueva")}
-            style={{ padding: "15px 30px", fontSize: "1.1rem" }}
-          >
-            ➕ Nueva Asistencia
           </button>
         </div>
       </div>

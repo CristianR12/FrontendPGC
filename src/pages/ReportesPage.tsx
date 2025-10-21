@@ -9,10 +9,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 
-/**
- * ReportesPage - Generación de reportes en diferentes formatos
- * Formatos disponibles: CSV, PDF, Excel
- */
+
 export function ReportesPage() {
   const navigate = useNavigate();
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
@@ -115,7 +112,6 @@ export function ReportesPage() {
             flexDirection: 'column', 
             gap: '15px' 
           }}>
-            {/* Botón CSV */}
             <button
               onClick={generarCSV}
               disabled={generando}
@@ -126,7 +122,8 @@ export function ReportesPage() {
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: generando ? 'not-allowed' : 'pointer',
+                opacity: generando ? 0.6 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -137,7 +134,6 @@ export function ReportesPage() {
               Exportar a CSV
             </button>
 
-            {/* Botón PDF */}
             <button
               onClick={generarPDF}
               style={{
@@ -158,7 +154,6 @@ export function ReportesPage() {
               Exportar a PDF
             </button>
 
-            {/* Botón Excel */}
             <button
               onClick={generarExcel}
               style={{
@@ -189,13 +184,27 @@ export function ReportesPage() {
         }}>
           <button 
             onClick={() => navigate('/home')}
-            style={{ padding: '12px 24px' }}
+            style={{ 
+              padding: '12px 24px',
+              backgroundColor: '#9e9e9e',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
           >
             🏠 Dashboard
           </button>
           <button 
             onClick={() => navigate('/asistencias')}
-            style={{ padding: '12px 24px' }}
+            style={{ 
+              padding: '12px 24px',
+              backgroundColor: '#2196F3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
           >
             📋 Ver Asistencias
           </button>

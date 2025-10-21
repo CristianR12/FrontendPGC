@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { LoginPage } from "../pages/Login";
 import { HomePage } from "../pages/HomePage";
 import { AsistenciasPage } from "../pages/assists";
@@ -8,6 +8,11 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ProtectedRoute } from "./ProtectedRoute";
 
+/**
+ * Configuración central de rutas
+ * - Ruta pública: / (Login)
+ * - Rutas protegidas: Requieren autenticación
+ */
 const AppRoutes = () => {
   return (
     <ErrorBoundary>
@@ -16,30 +21,42 @@ const AppRoutes = () => {
           {/* Ruta pública - Login */}
           <Route path="/" element={<LoginPage />} />
           
-          {/* Rutas protegidas - Requieren autenticación */}
-          <Route path="/home" element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          } />
+          {/* Rutas protegidas */}
+          <Route 
+            path="/home" 
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            } 
+          />
           
-          <Route path="/asistencias" element={
-            <ProtectedRoute>
-              <AsistenciasPage />
-            </ProtectedRoute>
-          } />
+          <Route 
+            path="/asistencias" 
+            element={
+              <ProtectedRoute>
+                <AsistenciasPage />
+              </ProtectedRoute>
+            } 
+          />
           
-          <Route path="/asistencias/editar/:id" element={
-            <ProtectedRoute>
-              <EditarAsistenciaPage />
-            </ProtectedRoute>
-          } />
+          <Route 
+            path="/asistencias/editar/:id" 
+            element={
+              <ProtectedRoute>
+                <EditarAsistenciaPage />
+              </ProtectedRoute>
+            } 
+          />
           
-          <Route path="/reportes" element={
-            <ProtectedRoute>
-              <ReportesPage />
-            </ProtectedRoute>
-          } />
+          <Route 
+            path="/reportes" 
+            element={
+              <ProtectedRoute>
+                <ReportesPage />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Ruta 404 */}
           <Route path="*" element={<NotFoundPage />} />

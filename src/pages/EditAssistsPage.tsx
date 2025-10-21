@@ -9,10 +9,6 @@ import type { Asistencia } from "../services/asistenciaService";
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 
-/**
- * EditarAsistenciaPage - Formulario de edición
- * Carga los datos existentes y permite actualizarlos
- */
 export function EditarAsistenciaPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -22,7 +18,6 @@ export function EditarAsistenciaPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Campos del formulario
   const [estudiante, setEstudiante] = useState('');
   const [estadoAsistencia, setEstadoAsistencia] = useState('');
   const [asignatura, setAsignatura] = useState('');
@@ -43,7 +38,6 @@ export function EditarAsistenciaPage() {
       const data = await asistenciaService.getById(id);
       setAsistencia(data);
       
-      // Rellenar formulario con datos existentes
       setEstudiante(data.estudiante);
       setEstadoAsistencia(data.estadoAsistencia);
       setAsignatura(data.asignatura || '');
@@ -105,7 +99,6 @@ export function EditarAsistenciaPage() {
           </h2>
 
           <form onSubmit={handleSubmit}>
-            {/* Estudiante */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ 
                 display: 'block', 
@@ -130,7 +123,6 @@ export function EditarAsistenciaPage() {
               />
             </div>
 
-            {/* Estado */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ 
                 display: 'block', 
@@ -159,7 +151,6 @@ export function EditarAsistenciaPage() {
               </select>
             </div>
 
-            {/* Asignatura */}
             <div style={{ marginBottom: '30px' }}>
               <label style={{ 
                 display: 'block', 
@@ -187,7 +178,6 @@ export function EditarAsistenciaPage() {
               </select>
             </div>
 
-            {/* Botones */}
             <div style={{ 
               display: 'flex', 
               gap: '10px', 
@@ -200,7 +190,11 @@ export function EditarAsistenciaPage() {
                 style={{
                   padding: '12px 24px',
                   backgroundColor: '#9e9e9e',
-                  color: 'white'
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1
                 }}
               >
                 Cancelar
@@ -212,7 +206,11 @@ export function EditarAsistenciaPage() {
                 style={{
                   padding: '12px 24px',
                   backgroundColor: '#4CAF50',
-                  color: 'white'
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1
                 }}
               >
                 {saving ? 'Guardando...' : '💾 Guardar Cambios'}

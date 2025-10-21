@@ -1,11 +1,17 @@
-import { Header } from '../components/Header'
-import Login from '../components/Login'
+// src/pages/LoginPage.tsx
+import { Header } from "../components/Header";
+import { Login } from "../components/Login";
 
-
-export function LoginInit() {
-  return <>
-  <Header/>
-  <Login/>
-  </>
-
+/**
+ * Página de Login
+ * - Header sin botón de cerrar sesión
+ * - Título: "Sistema de Asistencias"
+ */
+export function LoginPage() {
+  return (
+    <>
+      <Header title="Sistema de Asistencias" showLogout={false} />
+      <Login />
+    </>
+  );
 }

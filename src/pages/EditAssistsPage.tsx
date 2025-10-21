@@ -1,11 +1,18 @@
+// src/pages/EditarAsistenciaPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
-import asistenciaService from '../services/asistenciaService';
-import { Asistencia } from '../types/asistencia.types';
+import asistenciaService from "../services/asistenciaService";
+import type { Asistencia } from "../services/asistenciaService";
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 
+/**
+ * EditarAsistenciaPage - Formulario de edición
+ * Carga los datos existentes y permite actualizarlos
+ */
 export function EditarAsistenciaPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -15,7 +22,7 @@ export function EditarAsistenciaPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Formulario
+  // Campos del formulario
   const [estudiante, setEstudiante] = useState('');
   const [estadoAsistencia, setEstadoAsistencia] = useState('');
   const [asignatura, setAsignatura] = useState('');
@@ -36,7 +43,7 @@ export function EditarAsistenciaPage() {
       const data = await asistenciaService.getById(id);
       setAsistencia(data);
       
-      // Llenar formulario
+      // Rellenar formulario con datos existentes
       setEstudiante(data.estudiante);
       setEstadoAsistencia(data.estadoAsistencia);
       setAsignatura(data.asignatura || '');
@@ -44,6 +51,15 @@ export function EditarAsistenciaPage() {
       setError(err.message || 'Error al cargar asistencia');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
     }
   };
 
@@ -60,10 +76,10 @@ export function EditarAsistenciaPage() {
         asignatura: asignatura || undefined
       });
       
-      alert('Asistencia actualizada correctamente');
+      alert('✅ Asistencia actualizada correctamente');
       navigate('/asistencias');
     } catch (err: any) {
-      alert('Error al actualizar: ' + err.message);
+      alert('❌ Error al actualizar: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -75,64 +91,135 @@ export function EditarAsistenciaPage() {
 
   return (
     <>
-      <Header title="Editar Asistencia" />
+      <Header title="Editar Asistencia" showLogout={true} onLogout={handleLogout} />
       
       <div style={{ padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label>Nombre del Estudiante:</label>
-            <input
-              type="text"
-              value={estudiante}
-              onChange={(e) => setEstudiante(e.target.value)}
-              required
-              disabled={saving}
-            />
-          </div>
+        <div style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ marginBottom: '30px', textAlign: 'center' }}>
+            Modificar Registro
+          </h2>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label>Estado de Asistencia:</label>
-            <select
-              value={estadoAsistencia}
-              onChange={(e) => setEstadoAsistencia(e.target.value)}
-              required
-              disabled={saving}
-            >
-              <option value="">Seleccionar...</option>
-              <option value="Presente">Presente</option>
-              <option value="Ausente">Ausente</option>
-              <option value="Tiene Excusa">Tiene Excusa</option>
-            </select>
-          </div>
+          <form onSubmit={handleSubmit}>
+            {/* Estudiante */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px',
+                fontWeight: 'bold'
+              }}>
+                Nombre del Estudiante:
+              </label>
+              <input
+                type="text"
+                value={estudiante}
+                onChange={(e) => setEstudiante(e.target.value)}
+                required
+                disabled={saving}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ccc',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label>Asignatura:</label>
-            <select
-              value={asignatura}
-              onChange={(e) => setAsignatura(e.target.value)}
-              disabled={saving}
-            >
-              <option value="">Seleccionar...</option>
-              <option value="Matemáticas">Matemáticas</option>
-              <option value="Física">Física</option>
-              <option value="Programación">Programación</option>
-            </select>
-          </div>
+            {/* Estado */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px',
+                fontWeight: 'bold'
+              }}>
+                Estado de Asistencia:
+              </label>
+              <select
+                value={estadoAsistencia}
+                onChange={(e) => setEstadoAsistencia(e.target.value)}
+                required
+                disabled={saving}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ccc',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">Seleccionar...</option>
+                <option value="Presente">Presente</option>
+                <option value="Ausente">Ausente</option>
+                <option value="Tiene Excusa">Tiene Excusa</option>
+              </select>
+            </div>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={() => navigate('/asistencias')}
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-            
-            <button type="submit" disabled={saving}>
-              {saving ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
-          </div>
-        </form>
+            {/* Asignatura */}
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px',
+                fontWeight: 'bold'
+              }}>
+                Asignatura:
+              </label>
+              <select
+                value={asignatura}
+                onChange={(e) => setAsignatura(e.target.value)}
+                disabled={saving}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ccc',
+                  fontSize: '1rem'
+                }}
+              >
+                <option value="">Seleccionar...</option>
+                <option value="Matemáticas">Matemáticas</option>
+                <option value="Física">Física</option>
+                <option value="Programación">Programación</option>
+              </select>
+            </div>
+
+            {/* Botones */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '10px', 
+              justifyContent: 'flex-end' 
+            }}>
+              <button
+                type="button"
+                onClick={() => navigate('/asistencias')}
+                disabled={saving}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#9e9e9e',
+                  color: 'white'
+                }}
+              >
+                Cancelar
+              </button>
+              
+              <button 
+                type="submit" 
+                disabled={saving}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white'
+                }}
+              >
+                {saving ? 'Guardando...' : '💾 Guardar Cambios'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </>
   );

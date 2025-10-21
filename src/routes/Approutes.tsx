@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { LoginPage } from "../pages/LoginPage";
+import { LoginPage } from "../pages/Login";
 import { HomePage } from "../pages/HomePage";
-import { AsistenciasPage } from "../pages/AsistenciasPage";
-import { EditarAsistenciaPage } from "../pages/EditarAsistenciaPage";
+import { AsistenciasPage } from "../pages/assists";
+import { EditarAsistenciaPage } from "../pages/EditAssistsPage";
 import { ReportesPage } from "../pages/ReportesPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { ErrorBoundary } from "../components/ErrorBoundary";

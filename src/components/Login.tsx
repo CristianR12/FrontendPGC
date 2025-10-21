@@ -1,9 +1,15 @@
+// src/components/Login.tsx
 import { useState } from "react";
 import { auth, provider } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
-import {ErrorMessage} from "../components/ErrorMessage";
+import { ErrorMessage } from "./ErrorMessage";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 
+/**
+ * Componente de Login
+ * Maneja autenticación con email/password y Google
+ * Redirige a /home después de login exitoso
+ */
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -19,11 +25,21 @@ export function Login() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Usuario logueado:", userCredential.user.email);
-      navigate("/home"); // Redirige a home después de login exitoso
+      console.log("✅ Usuario autenticado:", userCredential.user.email);
+      navigate("/home"); // Redirige al dashboard
     } catch (err: any) {
-      console.error("Error en login:", err);
-      setError("Correo o contraseña incorrectos.");
+      console.error("❌ Error en login:", err);
+      
+      // Manejo de errores específicos de Firebase
+      if (err.code === "auth/user-not-found") {
+        setError("No existe una cuenta con este correo.");
+      } else if (err.code === "auth/wrong-password") {
+        setError("Contraseña incorrecta.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Formato de correo inválido.");
+      } else {
+        setError("Error al iniciar sesión. Intenta nuevamente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -36,10 +52,10 @@ export function Login() {
 
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log("Usuario Google:", result.user.displayName);
+      console.log("✅ Usuario Google:", result.user.displayName);
       navigate("/home");
     } catch (err: any) {
-      console.error("Error en login con Google:", err);
+      console.error("❌ Error en login con Google:", err);
       setError("No se pudo iniciar sesión con Google.");
     } finally {
       setLoading(false);

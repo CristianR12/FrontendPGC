@@ -1,17 +1,47 @@
-import { useState } from 'react';
+// src/pages/AsistenciasPage.tsx
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 import { Header } from '../components/Header';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { AsistenciaTable } from '../components/AsistenciaTable';
-import { useAsistencias } from '../hooks/useAsistencias';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import asistenciaService from "../services/asistenciaService";
+import type { Asistencia } from "../services/asistenciaService";
 
+/**
+ * AsistenciasPage - Listado y gestión de asistencias
+ * Incluye:
+ * - Filtros por asignatura
+ * - Botones para editar y eliminar
+ * - Navegación a reportes y nueva asistencia
+ */
 export function AsistenciasPage() {
   const navigate = useNavigate();
-  const { asistencias, loading, error, refetch, deleteAsistencia } = useAsistencias();
+  
+  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
+
+  useEffect(() => {
+    cargarAsistencias();
+  }, []);
+
+  const cargarAsistencias = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await asistenciaService.getAll();
+      setAsistencias(data);
+    } catch (err: any) {
+      console.error("Error al cargar asistencias:", err);
+      setError("No se pudieron cargar las asistencias");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -26,8 +56,9 @@ export function AsistenciasPage() {
     if (!window.confirm('¿Estás seguro de eliminar esta asistencia?')) return;
 
     try {
-      await deleteAsistencia(id);
+      await asistenciaService.delete(id);
       alert('Asistencia eliminada correctamente');
+      cargarAsistencias(); // Recargar lista
     } catch (err: any) {
       alert('Error al eliminar: ' + err.message);
     }
@@ -43,14 +74,20 @@ export function AsistenciasPage() {
     : asistencias;
 
   if (loading) return <LoadingSpinner message="Cargando asistencias..." />;
-  if (error) return <ErrorMessage message={error} onRetry={refetch} />;
+  if (error) return <ErrorMessage message={error} onRetry={cargarAsistencias} />;
 
   return (
     <>
       <Header title="Gestión de Asistencias" showLogout={true} onLogout={handleLogout} />
       
       <div style={{ padding: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        {/* Cabecera con botones */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '30px' 
+        }}>
           <h2>Listado de Asistencias ({asistenciasFiltradas.length})</h2>
           
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -58,26 +95,26 @@ export function AsistenciasPage() {
               className="btn-secondary"
               onClick={() => navigate('/home')}
             >
-              Volver al Dashboard
+              🏠 Dashboard
             </button>
             
             <button 
               className="btn-primary"
               onClick={() => navigate('/asistencias/nueva')}
             >
-              Nueva Asistencia
+              ➕ Nueva Asistencia
             </button>
             
             <button 
               className="btn-success"
               onClick={() => navigate('/reportes')}
             >
-              Generar Reportes
+              📄 Generar Reportes
             </button>
           </div>
         </div>
 
-        {/* Filtros */}
+        {/* Filtros por asignatura */}
         <div className="radios" style={{ marginBottom: '20px' }}>
           <label>
             <input
@@ -120,6 +157,7 @@ export function AsistenciasPage() {
           </label>
         </div>
 
+        {/* Tabla de asistencias */}
         <AsistenciaTable
           asistencias={asistenciasFiltradas}
           onDelete={handleDelete}

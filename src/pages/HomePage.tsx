@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
+import { HeaderWithSidebar } from "../components/HeaderWithSidebar";
 import { Header } from "../components/Header";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
@@ -168,6 +169,19 @@ export function HomePage() {
   };
 
   // ============================================
+  // NAVEGACIÓN
+  // ============================================
+  const handleNavigateStats = () => {
+    console.log('📊 Navegando a estadísticas...');
+    navigate("/estadisticas");
+  };
+
+  const handleNavigateAdvanced = () => {
+    console.log('⚙️ Navegando a gestión avanzada...');
+    navigate("/gestion-avanzada");
+  };
+
+  // ============================================
   // LOGOUT
   // ============================================
   const handleLogout = async () => {
@@ -196,7 +210,7 @@ export function HomePage() {
         <Header 
           title="Dashboard de Administración" 
           showLogout={true} 
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
         />
         <ErrorMessage message={error} onRetry={cargarAsistencias} />
       </>
@@ -223,7 +237,7 @@ export function HomePage() {
       <Header 
         title="Sistema de Gestión de Asistencias" 
         showLogout={true} 
-        onLogout={handleLogout} 
+        onLogout={handleLogout}
       />
       
       <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
@@ -328,7 +342,7 @@ export function HomePage() {
             </button>
 
             <button
-              onClick={() => navigate("/reportes")}
+              onClick={handleNavigateStats}
               style={{
                 padding: "12px 24px",
                 fontSize: "1rem",
@@ -340,8 +354,62 @@ export function HomePage() {
                 transition: "all 0.3s",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#1976D2";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#2196F3";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+              }}
             >
-              📄 Generar Reportes
+              📊 Estadísticas
+            </button>
+
+            <button
+              onClick={handleNavigateAdvanced}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#9C27B0",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#7B1FA2";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#9C27B0";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+              }}
+            >
+              ⚙️ Gestión Avanzada
+            </button>
+
+            <button
+              onClick={() => navigate("/reportes")}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#FF6B6B",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+            >
+              📄 Reportes
             </button>
 
             <button

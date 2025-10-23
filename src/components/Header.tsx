@@ -35,15 +35,9 @@ export function Header({ title, showLogout = false, onLogout }: HeaderProps) {
       }}>
         <img src={iaImg} alt="Imagen IA" className="imagen-ia" />
         
-        {showLogout && onLogout && (
-          <button 
-            onClick={onLogout} 
-            className="btn-logout"
-            
-          >
-            Cerrar Sesión
-          </button>
-        )}
+        
+          
+        
       </div>
     </div>
   );

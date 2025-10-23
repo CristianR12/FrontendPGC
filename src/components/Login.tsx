@@ -34,7 +34,14 @@ export function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("✅ Usuario autenticado:", userCredential.user.email);
-      
+      // ✅ Obtener token del usuario autenticado
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+
+      // ✅ Guardarlo en Local Storage
+      localStorage.setItem("authToken", token);
+
+      console.log("🔐 Token guardado:", token);
       showNotification(`¡Bienvenido ${userCredential.user.email}!`, 'success');
       
       // Redirigir después de 1.5 segundos para que vean el mensaje
@@ -76,6 +83,14 @@ export function Login() {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log("✅ Usuario Google:", result.user.displayName);
+      // ✅ Obtener token del usuario autenticado
+      const user = result.user;
+      const token = await user.getIdToken();
+
+      // ✅ Guardarlo en Local Storage
+      localStorage.setItem("authToken", token);
+
+      console.log("🔐 Token guardado:", token);
       
       showNotification(`¡Bienvenido ${result.user.displayName || result.user.email}!`, 'success');
       

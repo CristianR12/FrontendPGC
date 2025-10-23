@@ -1,12 +1,6 @@
-// ============================================
-// src/pages/AssistsPage.tsx (assists.tsx)
-// Página simplificada solo para gestión avanzada
-// ============================================
+// src/pages/assists.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
-import { Header } from '../components/Header';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { AsistenciaTable } from '../components/AsistenciaTable';
@@ -16,6 +10,7 @@ import type { Asistencia } from "../services/asistenciaService";
 
 export function AsistenciasPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,15 +51,6 @@ export function AsistenciasPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (err) {
-      console.error('Error al cerrar sesión:', err);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     const asistencia = asistencias.find(a => a.id === id);
     
@@ -90,15 +76,9 @@ export function AsistenciasPage() {
 
   // Aplicar todos los filtros
   const asistenciasFiltradas = asistencias.filter(a => {
-    // Filtro por asignatura
     if (filtroAsignatura && a.asignatura !== filtroAsignatura) return false;
-    
-    // Filtro por estado
     if (filtroEstado && a.estadoAsistencia !== filtroEstado) return false;
-    
-    // Búsqueda por nombre
     if (busqueda && !a.estudiante.toLowerCase().includes(busqueda.toLowerCase())) return false;
-    
     return true;
   });
 
@@ -113,12 +93,6 @@ export function AsistenciasPage() {
           onClose={() => setNotification({ ...notification, show: false })}
         />
       )}
-
-      <Header 
-        title="Gestión Avanzada de Asistencias" 
-        showLogout={true} 
-        onLogout={handleLogout} 
-      />
       
       <div style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
         
@@ -133,7 +107,7 @@ export function AsistenciasPage() {
         }}>
           <div>
             <h2 style={{ margin: 0, color: '#2b7a78' }}>
-              📊 Asistencias Registradas
+              📊 Gestión Avanzada de Asistencias
             </h2>
             <p style={{ margin: '5px 0 0 0', color: '#666' }}>
               Mostrando {asistenciasFiltradas.length} de {asistencias.length} registros
@@ -141,34 +115,6 @@ export function AsistenciasPage() {
           </div>
           
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button 
-              onClick={() => navigate('/home')}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#9e9e9e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              🏠 Dashboard
-            </button>
-            
-            <button 
-              onClick={() => navigate('/reportes')}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              📄 Reportes
-            </button>
-
             <button 
               onClick={cargarAsistencias}
               disabled={loading}
@@ -352,52 +298,6 @@ export function AsistenciasPage() {
             </div>
           )}
         </div>
-
-        {/* Resumen de filtros activos */}
-        {(filtroAsignatura || filtroEstado || busqueda) && (
-          <div style={{
-            background: '#e3f2fd',
-            padding: '15px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            flexWrap: 'wrap'
-          }}>
-            <strong style={{ color: '#1976d2' }}>Filtros activos:</strong>
-            {busqueda && (
-              <span style={{ 
-                background: 'white', 
-                padding: '5px 12px', 
-                borderRadius: '15px',
-                fontSize: '0.9rem'
-              }}>
-                🔍 "{busqueda}"
-              </span>
-            )}
-            {filtroAsignatura && (
-              <span style={{ 
-                background: 'white', 
-                padding: '5px 12px', 
-                borderRadius: '15px',
-                fontSize: '0.9rem'
-              }}>
-                📚 {filtroAsignatura}
-              </span>
-            )}
-            {filtroEstado && (
-              <span style={{ 
-                background: 'white', 
-                padding: '5px 12px', 
-                borderRadius: '15px',
-                fontSize: '0.9rem'
-              }}>
-                {filtroEstado === 'Presente' ? '✅' : filtroEstado === 'Ausente' ? '❌' : '📝'} {filtroEstado}
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Tabla o mensaje vacío */}
         {error && asistencias.length === 0 ? (

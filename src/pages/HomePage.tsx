@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { HeaderWithSidebar } from "../components/HeaderWithSidebar";
 import { Header } from "../components/Header";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
@@ -51,6 +51,22 @@ export function HomePage() {
     }
   };
 
+  // ============================================
+  // NAVEGACIÓN
+  // ============================================
+  const handleNavigateStats = () => {
+    console.log('📊 Navegando a estadísticas...');
+    navigate("/estadisticas");
+  };
+
+  const handleNavigateAdvanced = () => {
+    console.log('⚙️ Navegando a gestión avanzada...');
+    navigate("/gestion-avanzada");
+  };
+
+  // ============================================
+  // LOGOUT
+  // ============================================
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -63,9 +79,43 @@ export function HomePage() {
   if (loading) return <LoadingSpinner message="Cargando dashboard..." />;
   if (error) return <ErrorMessage message={error} onRetry={cargarEstadisticas} />;
 
+  // ============================================
+  // RENDER ERROR
+  // ============================================
+  if (error && asistencias.length === 0) {
+    return (
+      <>
+        <Header 
+          title="Dashboard de Administración" 
+          showLogout={true} 
+          onLogout={handleLogout}
+        />
+        <ErrorMessage message={error} onRetry={cargarAsistencias} />
+      </>
+    );
+  }
+  
+  
+  // ============================================
+  // RENDER PRINCIPAL
+  // ============================================
   return (
     <>
-      <Header title="Dashboard de Administración" showLogout={true} onLogout={handleLogout} />
+   
+      {/* Notificaciones */}
+      {notification.show && (
+        <Toast
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ ...notification, show: false })}
+        />
+      )}
+
+      <Header 
+        title="Sistema de Gestión de Asistencias" 
+        showLogout={true} 
+        onLogout={handleLogout}
+      />
       
       <div style={{ padding: "40px", maxWidth: "1200px", margin: "0 auto" }}>
         <h2 style={{ marginBottom: "30px", textAlign: "center", fontSize: "1.8rem" }}>
@@ -118,10 +168,118 @@ export function HomePage() {
           marginBottom: "40px",
           boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
         }}>
-          <h3 style={{ fontSize: "1.2rem", marginBottom: "10px" }}>Tasa de Asistencia</h3>
-          <p style={{ fontSize: "3rem", fontWeight: "bold", margin: "0" }}>
-            {stats.tasaAsistencia}%
-          </p>
+          <h2 style={{ margin: 0, color: "#2b7a78" }}>
+            📚 Gestión de Asistencias ({asistenciasFiltradas.length})
+          </h2>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              onClick={() => setShowNuevoForm(!showNuevoForm)}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: showNuevoForm ? "#9e9e9e" : "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+            >
+              {showNuevoForm ? "❌ Cancelar" : "➕ Nueva Asistencia"}
+            </button>
+
+            <button
+              onClick={handleNavigateStats}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#2196F3",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#1976D2";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#2196F3";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+              }}
+            >
+              📊 Estadísticas
+            </button>
+
+            <button
+              onClick={handleNavigateAdvanced}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#9C27B0",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#7B1FA2";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#9C27B0";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+              }}
+            >
+              ⚙️ Gestión Avanzada
+            </button>
+
+            <button
+              onClick={() => navigate("/reportes")}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#FF6B6B",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+            >
+              📄 Reportes
+            </button>
+
+            <button
+              onClick={cargarAsistencias}
+              disabled={loading}
+              style={{
+                padding: "12px 24px",
+                fontSize: "1rem",
+                backgroundColor: "#FF9800",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.6 : 1,
+                transition: "all 0.3s",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              }}
+            >
+              🔄 Actualizar
+            </button>
+          </div>
         </div>
 
         {/* Botones de acción */}

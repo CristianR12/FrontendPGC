@@ -112,7 +112,7 @@ body.dark-mode::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 0px 60px;
   margin-top: 20px;
   width: 100%;
   background: rgba(255, 255, 255, 0);

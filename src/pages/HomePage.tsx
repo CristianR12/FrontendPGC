@@ -10,6 +10,7 @@ import { Toast } from "../components/Toast";
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 import { getAuth } from "firebase/auth";
+import { Header } from "../components/Header";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -166,8 +167,8 @@ export function HomePage() {
           onClose={() => setNotification({ ...notification, show: false })}
         />
       )}
-      
-      <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
+      <Header title="Revisa como van tus asistencias" showLogout={false} />
+      <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
         
         {/* Sección de bienvenida */}
         <div style={{

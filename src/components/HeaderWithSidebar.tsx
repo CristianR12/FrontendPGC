@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import { HomeIcon } from 'lucide-react';
 
 interface HeaderWithSidebarProps {
   children: React.ReactNode;
@@ -47,15 +48,14 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
     {
       category: 'Principal',
       items: [
-        { icon: '🏠', label: 'Inicio', path: '/home' },
-        { icon: '📊', label: 'Estadísticas', path: '/estadisticas' },
+        { icon: <HomeIcon style={{ width: 24, height: 24, color: "#2196F3" }} />, label: 'Inicio', path: '/home' },
+        
       ]
     },
     {
       category: 'Gestión',
       items: [
         { icon: '📋', label: 'Asistencias', path: '/asistencias' },
-        { icon: '⚙️', label: 'Gestión Avanzada', path: '/gestion-avanzada' },
         { icon: '➕', label: 'Nueva Asistencia', path: '/home', action: 'new' },
       ]
     },
@@ -63,6 +63,12 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
       category: 'Reportes',
       items: [
         { icon: '📄', label: 'Generar Reportes', path: '/reportes' },
+      ]
+    },
+    {
+      category: 'Estadísticas y Análisis',
+      items: [
+        { icon: '📊', label: 'Estadísticas', path: '/estadisticas' },
         { icon: '📈', label: 'Análisis', path: '/analisis' },
       ]
     }

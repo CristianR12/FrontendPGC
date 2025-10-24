@@ -174,7 +174,7 @@ export function HomePage() {
         <div style={{
           background: isDarkMode 
             ? "linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)"
-            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            : "linear-gradient(135deg, #667eea 0%, #16dd0fff 100%)",
           color: "white",
           padding: "30px",
           borderRadius: "15px",

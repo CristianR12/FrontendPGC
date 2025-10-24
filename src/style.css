@@ -23,6 +23,13 @@
   --color-gray-medium: #9e9e9e;
   --color-gray-dark: #333;
   
+  /* Colores modo claro */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #e0e0e0;
+  
   /* Sombras */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.15);
@@ -35,6 +42,20 @@
 }
 
 /* ========================================
+   MODO OSCURO - Variables
+   ======================================== */
+body.dark-mode {
+  --bg-primary: #2d2d2d;
+  --bg-secondary: #1e1e1e;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --border-color: #3d3d3d;
+  --shadow-sm: 0 2px 8px rgba(255, 255, 255, 0.4);
+  --shadow-md: 0 4px 15px rgba(255, 255, 255, 0.5);
+  --shadow-lg: 0 8px 25px rgba(255, 255, 255, 0.6);
+}
+
+/* ========================================
    BODY Y LAYOUT PRINCIPAL
    ======================================== */
 
@@ -44,9 +65,11 @@ body {
   background-size: cover;
   min-height: 100vh;
   line-height: 1.6;
+  color: var(--text-primary);
+  transition: color var(--transition-normal);
 }
 
-/* Overlay oscuro sobre fondo */
+/* Overlay sobre fondo */
 body::before {
   content: '';
   position: fixed;
@@ -56,7 +79,29 @@ body::before {
   height: 100%;
   background: rgba(0, 0, 0, 0.137);
   z-index: -1;
+  transition: background var(--transition-normal);
 }
+
+/* Overlay modo oscuro - deja ver el patrón del fondo */
+body.dark-mode::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* degradado suave que mantiene el patrón */
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.75)
+  );
+  backdrop-filter: brightness(0.6) contrast(1.1);
+  mix-blend-mode: multiply;
+  z-index: -1;
+  transition: background var(--transition-normal);
+}
+
 
 /* ========================================
    HEADER
@@ -102,6 +147,10 @@ body::before {
   animation: float 3s ease-in-out infinite;
 }
 
+body.dark-mode .imagen-ia {
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.2));
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -120,6 +169,13 @@ body::before {
   background-clip: text;
   white-space: nowrap;
   letter-spacing: -0.5px;
+}
+
+body.dark-mode .mensaje-central {
+  background: linear-gradient(135deg, #4db6ac, #66bb6a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ========================================
@@ -184,6 +240,10 @@ button:disabled {
   color: white;
 }
 
+body.dark-mode .btn-secondary {
+  background: linear-gradient(135deg, #3d3d3d, #2d2d2d);
+}
+
 .btn-success {
   background: linear-gradient(135deg, var(--color-secondary), #388E3C);
   color: white;
@@ -206,12 +266,13 @@ button:disabled {
    ======================================== */
 
 .card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 30px;
   box-shadow: var(--shadow-md);
   transition: all var(--transition-normal);
   animation: fadeInUp 0.5s ease;
+  color: var(--text-primary);
 }
 
 @keyframes fadeInUp {
@@ -238,7 +299,7 @@ table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -255,6 +316,11 @@ thead {
   color: white;
 }
 
+body.dark-mode thead {
+  background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+  border-bottom: 2px solid #3d3d3d;
+}
+
 th {
   padding: 16px;
   text-align: left;
@@ -266,8 +332,9 @@ th {
 
 td {
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   transition: background var(--transition-fast);
+  color: var(--text-primary);
 }
 
 tbody tr {
@@ -277,6 +344,10 @@ tbody tr {
 tbody tr:hover {
   background: rgba(43, 122, 120, 0.05);
   transform: scale(1.01);
+}
+
+body.dark-mode tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 tbody tr:last-child td {
@@ -291,12 +362,20 @@ input, select, textarea {
   width: 100%;
   padding: 14px;
   margin-bottom: 15px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 1rem;
   font-family: inherit;
   transition: all var(--transition-normal);
-  background: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: #2d2d2d;
+  border-color: #3d3d3d;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -306,16 +385,24 @@ input:focus, select:focus, textarea:focus {
   transform: translateY(-2px);
 }
 
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  border-color: #4db6ac;
+  box-shadow: 0 0 0 3px rgba(77, 182, 172, 0.2);
+}
+
 input:disabled, select:disabled {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: var(--color-gray-dark);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
@@ -335,13 +422,14 @@ label {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: white;
+  background: var(--bg-primary);
   padding: 12px 20px;
   border-radius: 25px;
   cursor: pointer;
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-sm);
   font-weight: 500;
+  border: 2px solid var(--border-color);
 }
 
 .radios label:hover {
@@ -349,6 +437,12 @@ label {
   color: white;
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+body.dark-mode .radios label:hover {
+  background: #4db6ac;
+  border-color: #4db6ac;
 }
 
 .radios input[type="radio"] {
@@ -371,7 +465,7 @@ label {
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--bg-primary);
   padding: 50px;
   border-radius: 20px;
   box-shadow: var(--shadow-lg);
@@ -380,6 +474,11 @@ label {
   max-width: 450px;
   animation: scaleIn 0.5s ease;
   backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+}
+
+body.dark-mode .login-card {
+  background: rgba(45, 45, 45, 0.95);
 }
 
 @keyframes scaleIn {
@@ -399,9 +498,13 @@ label {
   color: var(--color-primary);
 }
 
+body.dark-mode .login-card h2 {
+  color: #4db6ac;
+}
+
 .login-card p {
   font-size: 1rem;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 30px;
 }
 
@@ -413,6 +516,10 @@ label {
   margin-top: 10px;
 }
 
+body.dark-mode .btn-login {
+  background: linear-gradient(135deg, #4db6ac, #26a69a);
+}
+
 .btn-google {
   width: 100%;
   background: linear-gradient(135deg, #3f3f40, #3f3f40);
@@ -422,6 +529,10 @@ label {
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+body.dark-mode .btn-google {
+  background: linear-gradient(135deg, #2d2d2d, #1e1e1e);
 }
 
 /* ========================================
@@ -438,8 +549,43 @@ label {
   margin: 0 auto;
 }
 
+body.dark-mode .spinner {
+  border: 4px solid rgba(77, 182, 172, 0.2);
+  border-top-color: #4db6ac;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   ESTILOS INLINE PARA COMPONENTES REACT
+   ======================================== */
+
+/* Estos estilos se aplican a elementos con style inline en React */
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background:white"] {
+  background: #2d2d2d !important;
+}
+
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#333"],
+body.dark-mode [style*="color: #666"],
+body.dark-mode [style*="color:#666"] {
+  color: #ffffff !important;
+}
+
+body.dark-mode [style*="color: #555"] {
+  color: #cccccc !important;
+}
+
+body.dark-mode [style*="color: #999"] {
+  color: #aaaaaa !important;
+}
+
+body.dark-mode [style*="border: 1px solid #ccc"],
+body.dark-mode [style*="border: 2px solid #e0e0e0"] {
+  border-color: #3d3d3d !important;
 }
 
 /* ========================================
@@ -490,3 +636,45 @@ label {
 .grid-2 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+
+/* ========================================
+   CLASES AUXILIARES PARA MODO OSCURO
+   ======================================== */
+
+.dark-card {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-text-primary {
+  color: var(--text-primary);
+}
+
+.dark-text-secondary {
+  color: var(--text-secondary);
+}
+
+.dark-border {
+  border-color: var(--border-color);
+}
+
+/* ========================================
+   ANIMACIONES ADICIONALES
+   ======================================== */
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.loading-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    to right,
+    var(--bg-secondary) 0%,
+    var(--bg-primary) 50%,
+    var(--bg-secondary) 100%
+  );
+  background-size: 1000px 100%;
+}

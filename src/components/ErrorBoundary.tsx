@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div style={{ padding: '50px', textAlign: 'center' }}>
           <h1>Algo salió mal</h1>
           <p>{this.state.error?.message}</p>
-          <button onClick={() => window.location.href = '/'}>
+          <button onClick={() => window.location.href = '/Home'}>
             Volver al inicio
           </button>
         </div>

@@ -10,29 +10,40 @@ interface DashboardCardProps {
  * Tarjeta reutilizable para mostrar estadísticas en el dashboard
  */
 export function DashboardCard({ title, value, icon, color }: DashboardCardProps) {
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  
   return (
     <div style={{
-      background: "white",
+      background: isDarkMode ? "#2d2d2d" : "white",
       borderRadius: "12px",
       padding: "25px",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+      boxShadow: isDarkMode 
+        ? "0 2px 10px rgba(0,0,0,0.5)" 
+        : "0 2px 10px rgba(0,0,0,0.1)",
       transition: "transform 0.2s, box-shadow 0.2s",
       cursor: "pointer",
-      borderLeft: `5px solid ${color}`
+      borderLeft: `5px solid ${color}`,
+      border: isDarkMode ? `1px solid #3d3d3d` : "none",
+      borderLeftWidth: "5px",
+      borderLeftColor: color
     }}
     onMouseEnter={(e) => {
       e.currentTarget.style.transform = "translateY(-5px)";
-      e.currentTarget.style.boxShadow = "0 5px 20px rgba(0,0,0,0.15)";
+      e.currentTarget.style.boxShadow = isDarkMode
+        ? "0 5px 20px rgba(0,0,0,0.7)"
+        : "0 5px 20px rgba(0,0,0,0.15)";
     }}
     onMouseLeave={(e) => {
       e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
+      e.currentTarget.style.boxShadow = isDarkMode
+        ? "0 2px 10px rgba(0,0,0,0.5)"
+        : "0 2px 10px rgba(0,0,0,0.1)";
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <p style={{ 
             margin: "0 0 10px 0", 
-            color: "#666", 
+            color: isDarkMode ? "#aaa" : "#666", 
             fontSize: "0.9rem",
             fontWeight: "500"
           }}>
@@ -47,7 +58,7 @@ export function DashboardCard({ title, value, icon, color }: DashboardCardProps)
             {value}
           </p>
         </div>
-        <div style={{ fontSize: "3rem" }}>
+        <div style={{ fontSize: "3rem", filter: isDarkMode ? "brightness(1.2)" : "none" }}>
           {icon}
         </div>
       </div>

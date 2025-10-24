@@ -47,7 +47,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
     {
       category: 'Principal',
       items: [
-        { icon: '🏠', label: 'Dashboard', path: '/home' },
+        { icon: '🏠', label: 'Inicio', path: '/home' },
         { icon: '📊', label: 'Estadísticas', path: '/estadisticas' },
       ]
     },
@@ -283,7 +283,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
           onClick={() => setSidebarOpen(false)}
           style={{
             position: 'fixed',
-            top: 0,
+            top: '70px',
             left: 0,
             right: 0,
             bottom: 0,
@@ -297,10 +297,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
       {/* Sidebar */}
       <div style={{
         position: 'fixed',
-        top: 0,
+        top: '70px',
         left: sidebarOpen ? 0 : '-300px',
         width: '280px',
-        height: '100vh',
+        height: 'calc(100vh - 70px)',
         background: darkMode ? '#1e1e1e' : 'white',
         boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
         zIndex: 999,
@@ -419,11 +419,8 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
 
         {/* Footer Sidebar */}
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
           padding: '15px 20px',
+          marginTop: '20px',
           borderTop: `2px solid ${darkMode ? '#2d2d2d' : '#f0f0f0'}`,
           fontSize: '0.75rem',
           color: darkMode ? '#666' : '#999',
@@ -449,10 +446,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
           to { opacity: 1; }
         }
 
-        body.dark-mode {
-          background: #121212 !important;
-          color: #fff;
-        }
+        
 
         body.dark-mode::before {
           background: rgba(0, 0, 0, 0.8) !important;

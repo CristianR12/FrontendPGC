@@ -1,11 +1,7 @@
-// ============================================
 // src/pages/HomePage.tsx
-// HOME COMPLETO: Estadísticas + CRUD de Asistencias
-// ============================================
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { Header } from "../components/Header";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DashboardCard } from "../components/DashboardCard";
@@ -18,31 +14,43 @@ import { getAuth } from "firebase/auth";
 export function HomePage() {
   const navigate = useNavigate();
   const auth = getAuth();
-  // Estados principales
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // Estado para nuevo registro
   const [showNuevoForm, setShowNuevoForm] = useState(false);
   const [nuevoEstudiante, setNuevoEstudiante] = useState("");
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [nuevaAsignatura, setNuevaAsignatura] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Notificaciones
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
     type: 'success' | 'error' | 'info';
   }>({ show: false, message: '', type: 'info' });
 
+  // Detectar cambios en el modo oscuro
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.body.classList.contains('dark-mode'));
+    };
+    
+    checkDarkMode();
+    
+    // Observer para detectar cambios en la clase del body
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ show: true, message, type });
   };
 
-  // Estadísticas calculadas
   const stats = {
     totalAsistencias: asistencias.length,
     presentes: asistencias.filter(a => a.estadoAsistencia === "Presente").length,
@@ -53,32 +61,21 @@ export function HomePage() {
       : 0
   };
 
-  // Asistencias filtradas
   const asistenciasFiltradas = filtroAsignatura
     ? asistencias.filter(a => a.asignatura === filtroAsignatura)
     : asistencias;
 
   useEffect(() => {
-    console.log('🔄 HomePage montado, cargando asistencias...');
     cargarAsistencias();
   }, []);
 
-  // ============================================
-  // CARGAR ASISTENCIAS
-  // ============================================
   const cargarAsistencias = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔄 Llamando a asistenciaService.getAll()...');
       const data = await asistenciaService.getAll();
-      
-      console.log('✅ Asistencias cargadas:', data.length);
       setAsistencias(data);
-      
     } catch (err: any) {
-      console.error("❌ Error al cargar asistencias:", err);
       const mensaje = err.message || "No se pudieron cargar las asistencias";
       setError(mensaje);
       showNotification(mensaje, 'error');
@@ -87,9 +84,6 @@ export function HomePage() {
     }
   };
     
-  // ============================================
-  // CREAR NUEVA ASISTENCIA
-  // ============================================
   const handleCrearAsistencia = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -100,8 +94,6 @@ export function HomePage() {
 
     setSaving(true);
     try {
-      console.log('🔄 Creando nueva asistencia...');
-      
       await asistenciaService.create({
         estudiante: nuevoEstudiante,
         estadoAsistencia: nuevoEstado,
@@ -109,35 +101,22 @@ export function HomePage() {
       });
 
       showNotification('✅ Asistencia registrada correctamente', 'success');
-      
-      // Limpiar formulario
       setNuevoEstudiante("");
       setNuevoEstado("");
       setNuevaAsignatura("");
       setShowNuevoForm(false);
-      
-      // Recargar lista
       await cargarAsistencias();
-      
     } catch (err: any) {
-      console.error('❌ Error al crear asistencia:', err);
       showNotification(err.message || 'Error al crear asistencia', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  // ============================================
-  // EDITAR ASISTENCIA
-  // ============================================
   const handleEdit = (id: string) => {
-    console.log('✏️ Editando asistencia ID:', id);
     navigate(`/asistencias/editar/${id}`);
   };
 
-  // ============================================
-  // ELIMINAR ASISTENCIA
-  // ============================================
   const handleDelete = async (id: string) => {
     const asistencia = asistencias.find(a => a.id === id);
     
@@ -147,71 +126,39 @@ export function HomePage() {
     }
 
     const confirmacion = window.confirm(
-      `¿Estás seguro de eliminar la asistencia de ${asistencia.estudiante}?\n\n` +
-      `Estado: ${asistencia.estadoAsistencia}\n` +
-      `Asignatura: ${asistencia.asignatura || 'N/A'}`
+      `¿Estás seguro de eliminar la asistencia de ${asistencia.estudiante}?`
     );
 
     if (!confirmacion) return;
 
     try {
-      console.log('🗑️ Eliminando asistencia ID:', id);
       await asistenciaService.delete(id);
-      
       showNotification('✅ Asistencia eliminada correctamente', 'success');
       await cargarAsistencias();
-      
     } catch (err: any) {
-      console.error('❌ Error al eliminar:', err);
       showNotification(err.message || 'Error al eliminar asistencia', 'error');
     }
   };
 
-  // ============================================
-  // LOGOUT
-  // ============================================
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      console.log('✅ Sesión cerrada');
       navigate("/");
     } catch (err) {
-      console.error("❌ Error al cerrar sesión:", err);
+      console.error("Error al cerrar sesión:", err);
     }
   };
 
-  // ============================================
-  // RENDER LOADING
-  // ============================================
   if (loading) {
     return <LoadingSpinner message="Cargando sistema de asistencias..." />;
   }
 
-  // ============================================
-  // RENDER ERROR
-  // ============================================
   if (error && asistencias.length === 0) {
-    return (
-      <>
-        <Header 
-          title="Dashboard de Administración" 
-          showLogout={true} 
-          onLogout={handleLogout} 
-        />
-        <ErrorMessage message={error} onRetry={cargarAsistencias} />
-      </>
-    );
+    return <ErrorMessage message={error} onRetry={cargarAsistencias} />;
   }
   
-  
-  // ============================================
-  // RENDER PRINCIPAL
-  // ============================================
   return (
-    
     <>
-   
-      {/* Notificaciones */}
       {notification.show && (
         <Toast
           message={notification.message}
@@ -219,25 +166,22 @@ export function HomePage() {
           onClose={() => setNotification({ ...notification, show: false })}
         />
       )}
-
-      <Header 
-        title="Sistema de Gestión de Asistencias" 
-        showLogout={true} 
-        onLogout={handleLogout} 
-      />
       
       <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
         
-        {/* ============================================
-            SECCIÓN 1: BIENVENIDA Y ESTADÍSTICAS
-            ============================================ */}
+        {/* Sección de bienvenida */}
         <div style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: isDarkMode 
+            ? "linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)"
+            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
           padding: "30px",
           borderRadius: "15px",
           marginBottom: "30px",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+          boxShadow: isDarkMode 
+            ? "0 4px 15px rgba(0,0,0,0.5)"
+            : "0 4px 15px rgba(0,0,0,0.2)",
+          border: isDarkMode ? "1px solid #3d3d3d" : "none"
         }}>
           <h2 style={{ 
             marginBottom: "10px", 
@@ -294,9 +238,7 @@ export function HomePage() {
           />
         </div>
 
-        {/* ============================================
-            SECCIÓN 2: ACCIONES RÁPIDAS
-            ============================================ */}
+        {/* Acciones Rápidas */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
@@ -305,7 +247,7 @@ export function HomePage() {
           flexWrap: "wrap",
           gap: "15px"
         }}>
-          <h2 style={{ margin: 0, color: "#2b7a78" }}>
+          <h2 style={{ margin: 0, color: isDarkMode ? "#fff" : "#2b7a78" }}>
             📚 Gestión de Asistencias ({asistenciasFiltradas.length})
           </h2>
 
@@ -365,19 +307,18 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* ============================================
-            SECCIÓN 3: FORMULARIO NUEVA ASISTENCIA
-            ============================================ */}
+        {/* Formulario Nueva Asistencia */}
         {showNuevoForm && (
           <div style={{
-            background: "white",
+            background: isDarkMode ? "#2d2d2d" : "white",
             padding: "25px",
             borderRadius: "12px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
             marginBottom: "30px",
-            animation: "slideDown 0.3s ease-out"
+            animation: "slideDown 0.3s ease-out",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none"
           }}>
-            <h3 style={{ marginBottom: "20px", color: "#2b7a78" }}>
+            <h3 style={{ marginBottom: "20px", color: isDarkMode ? "#fff" : "#2b7a78" }}>
               ➕ Registrar Nueva Asistencia
             </h3>
 
@@ -393,7 +334,7 @@ export function HomePage() {
                     display: "block", 
                     marginBottom: "5px",
                     fontWeight: "600",
-                    color: "#555"
+                    color: isDarkMode ? "#fff" : "#555"
                   }}>
                     Nombre del Estudiante *
                   </label>
@@ -408,8 +349,10 @@ export function HomePage() {
                       width: "100%",
                       padding: "10px",
                       borderRadius: "6px",
-                      border: "2px solid #e0e0e0",
-                      fontSize: "1rem"
+                      border: isDarkMode ? "2px solid #3d3d3d" : "2px solid #e0e0e0",
+                      fontSize: "1rem",
+                      background: isDarkMode ? "#2d2d2d" : "white",
+                      color: isDarkMode ? "#fff" : "#333"
                     }}
                   />
                 </div>
@@ -419,7 +362,7 @@ export function HomePage() {
                     display: "block", 
                     marginBottom: "5px",
                     fontWeight: "600",
-                    color: "#555"
+                    color: isDarkMode ? "#fff" : "#555"
                   }}>
                     Estado *
                   </label>
@@ -432,8 +375,10 @@ export function HomePage() {
                       width: "100%",
                       padding: "10px",
                       borderRadius: "6px",
-                      border: "2px solid #e0e0e0",
-                      fontSize: "1rem"
+                      border: isDarkMode ? "2px solid #3d3d3d" : "2px solid #e0e0e0",
+                      fontSize: "1rem",
+                      background: isDarkMode ? "#2d2d2d" : "white",
+                      color: isDarkMode ? "#fff" : "#333"
                     }}
                   >
                     <option value="">Seleccionar...</option>
@@ -448,7 +393,7 @@ export function HomePage() {
                     display: "block", 
                     marginBottom: "5px",
                     fontWeight: "600",
-                    color: "#555"
+                    color: isDarkMode ? "#fff" : "#555"
                   }}>
                     Asignatura (Opcional)
                   </label>
@@ -460,8 +405,10 @@ export function HomePage() {
                       width: "100%",
                       padding: "10px",
                       borderRadius: "6px",
-                      border: "2px solid #e0e0e0",
-                      fontSize: "1rem"
+                      border: isDarkMode ? "2px solid #3d3d3d" : "2px solid #e0e0e0",
+                      fontSize: "1rem",
+                      background: isDarkMode ? "#2d2d2d" : "white",
+                      color: isDarkMode ? "#fff" : "#333"
                     }}
                   >
                     <option value="">Sin asignar</option>
@@ -516,15 +463,14 @@ export function HomePage() {
           </div>
         )}
 
-        {/* ============================================
-            SECCIÓN 4: FILTROS
-            ============================================ */}
+        {/* Filtros */}
         <div style={{
-          background: "white",
+          background: isDarkMode ? "#2d2d2d" : "white",
           padding: "15px",
           borderRadius: "10px",
           marginBottom: "20px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+          boxShadow: isDarkMode ? "0 2px 8px rgba(0,0,0,0.5)" : "0 2px 8px rgba(0,0,0,0.08)",
+          border: isDarkMode ? "1px solid #3d3d3d" : "none"
         }}>
           <div style={{ 
             display: "flex",
@@ -533,7 +479,7 @@ export function HomePage() {
             alignItems: "center",
             justifyContent: "center"
           }}>
-            <strong style={{ color: "#555" }}>Filtrar por asignatura:</strong>
+            <strong style={{ color: isDarkMode ? "#aaa" : "#555" }}>Filtrar por asignatura:</strong>
             
             <label style={{ 
               display: "flex", 
@@ -542,8 +488,11 @@ export function HomePage() {
               cursor: "pointer",
               padding: "8px 15px",
               borderRadius: "20px",
-              background: filtroAsignatura === null ? "#e3f2fd" : "transparent",
-              transition: "all 0.3s"
+              background: filtroAsignatura === null 
+                ? (isDarkMode ? "#4db6ac" : "#e3f2fd")
+                : "transparent",
+              transition: "all 0.3s",
+              color: isDarkMode ? "#fff" : "#333"
             }}>
               <input
                 type="radio"
@@ -569,8 +518,11 @@ export function HomePage() {
                     cursor: "pointer",
                     padding: "8px 15px",
                     borderRadius: "20px",
-                    background: filtroAsignatura === asignatura ? "#e3f2fd" : "transparent",
-                    transition: "all 0.3s"
+                    background: filtroAsignatura === asignatura 
+                      ? (isDarkMode ? "#4db6ac" : "#e3f2fd")
+                      : "transparent",
+                    transition: "all 0.3s",
+                    color: isDarkMode ? "#fff" : "#333"
                   }}
                 >
                   <input
@@ -590,22 +542,21 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* ============================================
-            SECCIÓN 5: TABLA DE ASISTENCIAS
-            ============================================ */}
+        {/* Tabla de Asistencias */}
         {asistenciasFiltradas.length === 0 ? (
           <div style={{
-            background: "white",
+            background: isDarkMode ? "#2d2d2d" : "white",
             padding: "60px 20px",
             borderRadius: "12px",
             textAlign: "center",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)"
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none"
           }}>
             <div style={{ fontSize: "4rem", marginBottom: "20px" }}>📭</div>
-            <h3 style={{ color: "#666", marginBottom: "10px" }}>
+            <h3 style={{ color: isDarkMode ? "#fff" : "#666", marginBottom: "10px" }}>
               No hay asistencias registradas
             </h3>
-            <p style={{ color: "#999" }}>
+            <p style={{ color: isDarkMode ? "#aaa" : "#999" }}>
               {filtroAsignatura 
                 ? `No hay registros para ${filtroAsignatura}`
                 : "Comienza registrando tu primera asistencia"
@@ -630,10 +581,11 @@ export function HomePage() {
           </div>
         ) : (
           <div style={{
-            background: "white",
+            background: isDarkMode ? "#2d2d2d" : "white",
             borderRadius: "12px",
             overflow: "hidden",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)"
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none"
           }}>
             <AsistenciaTable
               asistencias={asistenciasFiltradas}

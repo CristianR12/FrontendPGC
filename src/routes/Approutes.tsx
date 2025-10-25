@@ -25,16 +25,26 @@ import { EditarAsistenciaPage } from '../pages/EditAssistsPage';
 import { ReportesPage } from '../pages/ReportesPage';
 
 // ============================================
-// ✨ NUEVAS IMPORTACIONES PARA HORARIOS
+// ✨ IMPORTACIONES PARA HORARIOS
 // ============================================
 import { GestionHorariosFirebase } from '../pages/GestionHorariosFirebase';
-import { HorarioCompleto } from '../pages/HorarioCompleto';
 
 /**
  * Componente de rutas principal
  * Gestiona la autenticación y redirecciona según el estado del usuario
- * - Rutas públicas: Login, Registro
- * - Rutas protegidas: Requieren autenticación mediante ProtectedRoute
+ * 
+ * RUTAS PÚBLICAS:
+ * - /login → Página de login
+ * - / → Redirige a /login o /home según autenticación
+ * 
+ * RUTAS PROTEGIDAS:
+ * - /home → Dashboard principal con horarios editables
+ * - /asistencias → Gestión de asistencias
+ * - /asistencias/editar/:id → Editar asistencia específica
+ * - /reportes → Generación de reportes
+ * - /horario-completo → Ver horario semanal completo
+ * - /gestion-horarios → Gestionar horarios (profesores)
+ * - * → Página 404
  */
 function AppRoutes() {
   const [user, setUser] = useState<any>(null);
@@ -107,13 +117,20 @@ function AppRoutes() {
             element={user ? <Navigate to="/home" /> : <LoginPage />} 
           />
 
-          
-
           {/* ============================================ */}
           {/* RUTAS PROTEGIDAS (Requieren autenticación) */}
           {/* ============================================ */}
 
           {/* Home / Dashboard Principal */}
+          {/* 
+            Contiene:
+            - CalendarioHorariosEditable: Tabla de horarios editable
+            - Estadísticas de asistencias
+            - Formulario de registro de asistencias
+            - Tabla de asistencias con CRUD
+            
+            ACTUALIZACIÓN: Ahora usa horarioApiService en lugar de firebaseHorarioService
+          */}
           <Route 
             path="/home" 
             element={
@@ -154,22 +171,33 @@ function AppRoutes() {
           />
 
           {/* ============================================ */}
-          {/* ✨ NUEVAS RUTAS DE HORARIOS (PROTEGIDAS) */}
+          {/* ✨ RUTAS DE HORARIOS (PROTEGIDAS) */}
           {/* ============================================ */}
 
           {/* Ver Horario Completo Semanal */}
-          {/* Accesible para todos los usuarios autenticados (Estudiantes y Profesores) */}
-          <Route 
-            path="/horario-completo" 
-            element={
-              <ProtectedRoute>
-                <HorarioCompleto />
-              </ProtectedRoute>
-            } 
-          />
-
-          {/* Gestión de Horarios */}
-          {/* Principalmente para profesores, pero la validación se hace dentro del componente */}
+          {/* 
+            Accesible para:
+            - Estudiantes: Ver su horario semanal
+            - Profesores: Ver su horario completo
+            
+            Características:
+            - Vista por días de la semana
+            - Información de clases: horario, salón, grupo
+            - Responsive y adaptable
+          */}
+         
+          {/* Gestión de Horarios - SOLO PROFESORES */}
+          {/* 
+            Características:
+            - Crear/Editar/Eliminar cursos
+            - Agregar/Editar/Eliminar clases
+            - Validación de conflictos de horario
+            - Vista de lista de cursos
+            - Vista de edición de horarios
+            - Vista de horario completo
+            
+            Nota: La validación de si es profesor se hace en el componente
+          */}
           <Route 
             path="/gestion-horarios" 
             element={

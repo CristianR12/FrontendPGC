@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 
 interface ToastProps {
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning'; // ✅ se agrega "warning"
   onClose: () => void;
   duration?: number;
 }
@@ -18,40 +18,44 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
+  // ✅ Se agrega estilo para "warning"
   const colors = {
-    success: { bg: '#4CAF50', icon: '✅' },
-    error: { bg: '#f44336', icon: '❌' },
-    info: { bg: '#2196F3', icon: 'ℹ️' }
+    success: { bg: '#4CAF50', color: 'white', icon: '✅' },
+    error: { bg: '#f44336', color: 'white', icon: '❌' },
+    info: { bg: '#2196F3', color: 'white', icon: 'ℹ️' },
+    warning: { bg: '#FF9800', color: '#212121', icon: '⚠️' }
   };
 
-  const { bg, icon } = colors[type];
+  const { bg, color, icon } = colors[type];
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      backgroundColor: bg,
-      color: 'white',
-      padding: '16px 24px',
-      borderRadius: '12px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      zIndex: 9999,
-      animation: 'slideIn 0.3s ease-out',
-      minWidth: '300px',
-      maxWidth: '500px'
-    }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        backgroundColor: bg,
+        color: color,
+        padding: '16px 24px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        zIndex: 9999,
+        animation: 'slideIn 0.3s ease-out',
+        minWidth: '300px',
+        maxWidth: '500px'
+      }}
+    >
       <span style={{ fontSize: '1.5rem' }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: '1rem' }}>{message}</span>
+      <span style={{ flex: 1, fontSize: '1rem', fontWeight: 500 }}>{message}</span>
       <button
         onClick={onClose}
         style={{
           background: 'rgba(255,255,255,0.3)',
           border: 'none',
-          color: 'white',
+          color: color,
           cursor: 'pointer',
           borderRadius: '50%',
           width: '24px',
@@ -65,7 +69,7 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
       >
         ×
       </button>
-      
+
       <style>{`
         @keyframes slideIn {
           from {

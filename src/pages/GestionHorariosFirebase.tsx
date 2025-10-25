@@ -1,11 +1,12 @@
 // src/pages/GestionHorariosFirebase.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import firebaseHorarioService from '../services/firebaseHorarioService';
-import type { Course, ScheduleClass } from '../services/firebaseHorarioService';
+import horarioApiService from '../services/horarioApiService';
+import type { Course, ScheduleClass } from '../services/horarioApiService';
+import type { ScheduleClass as ScheduleType } from '../services/horarioApiService';
 import { Toast } from '../components/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Calendar, Plus, Trash2, Edit2, Save, X, AlertCircle, BookOpen } from 'lucide-react';
+import { Calendar, Plus, Trash2, Save, X } from 'lucide-react';
 import { auth } from '../firebaseConfig';
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -41,7 +42,8 @@ export function GestionHorariosFirebase() {
   const cargarCursos = async () => {
     try {
       setLoading(true);
-      const cursosData = await firebaseHorarioService.getHorarioProfesor(user?.uid || '');
+      // USANDO NUEVA API
+      const cursosData = await horarioApiService.getHorariosProfesor();
       setCursos(cursosData);
     } catch (error: any) {
       showNotification(error.message || 'Error al cargar cursos', 'error');
@@ -54,18 +56,22 @@ export function GestionHorariosFirebase() {
     setNotification({ show: true, message, type });
   };
 
-  const handleGuardarHorario = async (courseId: string, schedule: ScheduleClass[]) => {
+  const handleGuardarHorario = async (courseId: string, schedule: ScheduleType[]) => {
     try {
       setSaving(true);
       
-      const { tieneConflictos, conflictos } = firebaseHorarioService.validarConflictos(schedule);
-      if (tieneConflictos) {
-        showNotification(`Conflictos: ${conflictos.join('. ')}`, 'error');
-        setSaving(false);
-        return;
+      // Validar todas las clases
+      for (const clase of schedule) {
+        const validacion = horarioApiService.validarClase(clase);
+        if (!validacion.valido) {
+          showNotification(validacion.errores[0], 'error');
+          setSaving(false);
+          return;
+        }
       }
       
-      await firebaseHorarioService.actualizarHorarioCurso(courseId, schedule);
+      // USANDO NUEVA API
+      await horarioApiService.actualizarScheduleCurso(courseId, schedule);
       await cargarCursos();
       showNotification('✅ Horario guardado correctamente', 'success');
       setVista('lista');
@@ -216,7 +222,7 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
         gap: '20px'
       }}>
         {cursos.map((curso, index) => {
-          const color = firebaseHorarioService.generarColor(index);
+          const color = horarioApiService.generarColor(index);
           const totalClases = curso.schedule?.length || 0;
           
           return (
@@ -251,7 +257,7 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                   padding: '12px',
                   borderRadius: '10px'
                 }}>
-                  <BookOpen size={24} color={color} />
+                  📚
                 </div>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#2b2b2b' }}>
@@ -292,11 +298,17 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
-                <Edit2 size={18} />
-                Editar Horario
+                ✏️ Editar Horario
               </button>
             </div>
           );
@@ -327,14 +339,14 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
 // Componente: Editar Horario de Curso
 interface EditarHorarioCursoProps {
   curso: Course;
-  onGuardar: (schedule: ScheduleClass[]) => void;
+  onGuardar: (schedule: ScheduleType[]) => void;
   onCancelar: () => void;
   saving: boolean;
 }
 
 function EditarHorarioCurso({ curso, onGuardar, onCancelar, saving }: EditarHorarioCursoProps) {
-  const [schedule, setSchedule] = useState<ScheduleClass[]>(curso.schedule || []);
-  const [nuevaClase, setNuevaClase] = useState<ScheduleClass>({
+  const [schedule, setSchedule] = useState<ScheduleType[]>(curso.schedule || []);
+  const [nuevaClase, setNuevaClase] = useState<ScheduleType>({
     classroom: '',
     day: 'Lunes',
     iniTime: '08:00',
@@ -344,6 +356,12 @@ function EditarHorarioCurso({ curso, onGuardar, onCancelar, saving }: EditarHora
   const agregarClase = () => {
     if (!nuevaClase.classroom) {
       alert('Por favor ingresa el salón');
+      return;
+    }
+
+    const validacion = horarioApiService.validarClase(nuevaClase);
+    if (!validacion.valido) {
+      alert(validacion.errores[0]);
       return;
     }
 
@@ -518,7 +536,10 @@ function EditarHorarioCurso({ curso, onGuardar, onCancelar, saving }: EditarHora
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
                   <Trash2 size={18} />
@@ -581,7 +602,7 @@ interface VisualizarHorarioCompletoProps {
 }
 
 function VisualizarHorarioCompleto({ cursos, onVolver }: VisualizarHorarioCompletoProps) {
-  const horarioPorDia = firebaseHorarioService.organizarHorarioPorDias(cursos);
+  const horarioPorDia = horarioApiService.organizarHorarioPorDias(cursos);
 
   return (
     <div style={{
@@ -629,7 +650,7 @@ function VisualizarHorarioCompleto({ cursos, onVolver }: VisualizarHorarioComple
             {horarioPorDia[dia].length > 0 ? (
               <div style={{ display: 'grid', gap: '10px' }}>
                 {horarioPorDia[dia].map((clase: any, index: number) => {
-                  const color = firebaseHorarioService.generarColor(index);
+                  const color = horarioApiService.generarColor(index);
                   return (
                     <div
                       key={index}

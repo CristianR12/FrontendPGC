@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
+import { doc, getDoc } from 'firebase/firestore';
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DashboardCard } from "../components/DashboardCard";
@@ -11,6 +12,12 @@ import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 import { getAuth } from "firebase/auth";
 import { Header } from "../components/Header";
+import { db } from '../firebaseConfig';
+import firebaseHorarioService from '../services/firebaseHorarioService';
+import type { Course } from '../services/firebaseHorarioService';
+import { Calendar, Clock, MapPin, ChevronLeft, ChevronRight, User } from 'lucide-react';
+
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -27,6 +34,13 @@ export function HomePage() {
   const [nuevaAsignatura, setNuevaAsignatura] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Estados para el sistema de horarios
+  const [userType, setUserType] = useState<'Estudiante' | 'Profesor' | null>(null);
+  const [loadingUserType, setLoadingUserType] = useState(true);
+  const [cursos, setCursos] = useState<Course[]>([]);
+  const [loadingHorario, setLoadingHorario] = useState(true);
+  const [diaSeleccionado, setDiaSeleccionado] = useState(obtenerDiaActual());
+
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
@@ -41,12 +55,51 @@ export function HomePage() {
     
     checkDarkMode();
     
-    // Observer para detectar cambios en la clase del body
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     
     return () => observer.disconnect();
   }, []);
+
+  // Cargar tipo de usuario y horario
+  useEffect(() => {
+    const cargarDatos = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setLoadingUserType(false);
+        setLoadingHorario(false);
+        return;
+      }
+
+      try {
+        setLoadingUserType(true);
+        setLoadingHorario(true);
+        
+        const personDoc = await getDoc(doc(db, 'person', user.uid));
+        
+        if (personDoc.exists()) {
+          const data = personDoc.data();
+          setUserType(data.type);
+          
+          // Cargar horario según tipo de usuario
+          let cursosData: Course[];
+          if (data.type === 'Profesor') {
+            cursosData = await firebaseHorarioService.getHorarioProfesor(user.uid);
+          } else {
+            cursosData = await firebaseHorarioService.getHorarioEstudiante(user.uid);
+          }
+          setCursos(cursosData);
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar datos:', error);
+      } finally {
+        setLoadingUserType(false);
+        setLoadingHorario(false);
+      }
+    };
+
+    cargarDatos();
+  }, [auth.currentUser]);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ show: true, message, type });
@@ -83,6 +136,30 @@ export function HomePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Obtener clases del día seleccionado
+  const obtenerClasesDia = (dia: string) => {
+    const horarioPorDia = firebaseHorarioService.organizarHorarioPorDias(cursos);
+    return horarioPorDia[dia] || [];
+  };
+
+  const clasesDia = obtenerClasesDia(diaSeleccionado);
+  const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
+
+  const esClaseActual = (iniTime: string, endTime: string) => {
+    if (diaSeleccionado !== obtenerDiaActual()) return false;
+    const [hIni, mIni] = iniTime.split(':').map(Number);
+    const [hFin, mFin] = endTime.split(':').map(Number);
+    const inicio = hIni * 60 + mIni;
+    const fin = hFin * 60 + mFin;
+    return horaActual >= inicio && horaActual <= fin;
+  };
+
+  const cambiarDia = (direccion: number) => {
+    const indexActual = DIAS_SEMANA.indexOf(diaSeleccionado);
+    const nuevoIndex = (indexActual + direccion + DIAS_SEMANA.length) % DIAS_SEMANA.length;
+    setDiaSeleccionado(DIAS_SEMANA[nuevoIndex]);
   };
     
   const handleCrearAsistencia = async (e: React.FormEvent) => {
@@ -150,7 +227,7 @@ export function HomePage() {
     }
   };
 
-  if (loading) {
+  if (loading || loadingUserType) {
     return <LoadingSpinner message="Cargando sistema de asistencias..." />;
   }
 
@@ -168,7 +245,8 @@ export function HomePage() {
         />
       )}
       <Header title="Revisa como van tus asistencias" showLogout={false} />
-      <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
+      
+      <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
         
         {/* Sección de bienvenida */}
         <div style={{
@@ -184,22 +262,480 @@ export function HomePage() {
             : "0 4px 15px rgba(0,0,0,0.2)",
           border: isDarkMode ? "1px solid #3d3d3d" : "none"
         }}>
-          <h2 style={{ 
-            marginBottom: "10px", 
-            fontSize: "2rem",
-            textAlign: "center"
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '15px'
           }}>
-            👋 Bienvenido, {auth.currentUser?.displayName || auth.currentUser?.email}
-          </h2>
-          <p style={{ textAlign: "center", fontSize: "1.1rem", opacity: 0.9 }}>
-            Sistema de Control de Asistencias
-          </p>
+            <div>
+              <h2 style={{ 
+                marginBottom: "10px", 
+                fontSize: "2rem",
+              }}>
+                👋 Bienvenido, {auth.currentUser?.displayName || auth.currentUser?.email}
+              </h2>
+              <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: 0 }}>
+                Sistema de Control de Asistencias {userType && `• ${userType}`}
+              </p>
+            </div>
+
+            {/* Botones de navegación rápida */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/horario-completo')}
+                style={{
+                  padding: '12px 24px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                📅 Ver Horario Completo
+              </button>
+
+              {userType === 'Profesor' && (
+                <button
+                  onClick={() => navigate('/gestion-horarios')}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: '2px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  ⚙️ Gestionar Horarios
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Grid de Estadísticas */}
+        {/* ============================================ */}
+        {/* TABLA DE HORARIO INTERACTIVA - AL INICIO */}
+        {/* ============================================ */}
+        {userType && (
+          <div style={{
+            background: isDarkMode ? '#2d2d2d' : 'white',
+            borderRadius: '20px',
+            padding: '30px',
+            marginBottom: '40px',
+            boxShadow: isDarkMode 
+              ? '0 10px 40px rgba(0,0,0,0.5)' 
+              : '0 10px 40px rgba(0,0,0,0.1)',
+            border: isDarkMode ? '1px solid #3d3d3d' : 'none'
+          }}>
+            {/* Header del Horario */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px',
+              flexWrap: 'wrap',
+              gap: '15px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '15px',
+                  borderRadius: '15px'
+                }}>
+                  <Calendar size={32} color="white" />
+                </div>
+                <div>
+                  <h2 style={{ 
+                    margin: 0, 
+                    fontSize: '1.8rem', 
+                    color: isDarkMode ? '#fff' : '#2b2b2b' 
+                  }}>
+                    Mi Horario de Clases
+                  </h2>
+                  <p style={{ 
+                    margin: '5px 0 0 0', 
+                    color: isDarkMode ? '#aaa' : '#666',
+                    fontSize: '1rem'
+                  }}>
+                    {cursos.length} {cursos.length === 1 ? 'curso' : 'cursos'} • {clasesDia.length} {clasesDia.length === 1 ? 'clase' : 'clases'} hoy
+                  </p>
+                </div>
+              </div>
+
+              {/* Selector de día */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: isDarkMode ? '#1e1e1e' : '#f5f5f5',
+                padding: '10px 15px',
+                borderRadius: '12px'
+              }}>
+                <button
+                  onClick={() => cambiarDia(-1)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = isDarkMode ? '#3d3d3d' : '#e0e0e0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <ChevronLeft size={24} color={isDarkMode ? '#fff' : '#666'} />
+                </button>
+
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: '700',
+                  color: isDarkMode ? '#fff' : '#2b2b2b',
+                  minWidth: '120px',
+                  textAlign: 'center'
+                }}>
+                  {diaSeleccionado}
+                </div>
+
+                <button
+                  onClick={() => cambiarDia(1)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = isDarkMode ? '#3d3d3d' : '#e0e0e0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <ChevronRight size={24} color={isDarkMode ? '#fff' : '#666'} />
+                </button>
+              </div>
+            </div>
+
+            {/* Tabla de Horario */}
+            {loadingHorario ? (
+              <div style={{ 
+                padding: '60px', 
+                textAlign: 'center',
+                color: isDarkMode ? '#aaa' : '#666'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '15px' }}>⏳</div>
+                <p>Cargando horario...</p>
+              </div>
+            ) : clasesDia.length === 0 ? (
+              <div style={{
+                padding: '60px',
+                textAlign: 'center',
+                background: isDarkMode ? '#1e1e1e' : '#f9f9f9',
+                borderRadius: '15px',
+                border: `2px dashed ${isDarkMode ? '#3d3d3d' : '#ddd'}`
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '15px' }}>📅</div>
+                <h3 style={{ 
+                  color: isDarkMode ? '#fff' : '#666',
+                  marginBottom: '10px'
+                }}>
+                  No hay clases programadas
+                </h3>
+                <p style={{ color: isDarkMode ? '#aaa' : '#999' }}>
+                  Disfruta tu día libre el {diaSeleccionado}
+                </p>
+                {userType === 'Profesor' && (
+                  <button
+                    onClick={() => navigate('/gestion-horarios')}
+                    style={{
+                      marginTop: '20px',
+                      padding: '12px 24px',
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Gestionar Horarios
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gap: '15px'
+              }}>
+                {clasesDia.map((clase: any, index: number) => {
+                  const esActual = esClaseActual(clase.iniTime, clase.endTime);
+                  const color = firebaseHorarioService.generarColor(index);
+                  
+                  return (
+                    <div
+                      key={index}
+                      style={{
+                        background: esActual 
+                          ? `linear-gradient(135deg, ${color}30 0%, ${color}15 100%)`
+                          : isDarkMode ? '#1e1e1e' : '#f9f9f9',
+                        border: `3px solid ${esActual ? color : (isDarkMode ? '#3d3d3d' : '#e0e0e0')}`,
+                        borderRadius: '15px',
+                        padding: '25px',
+                        position: 'relative',
+                        transition: 'all 0.3s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateX(5px)';
+                        e.currentTarget.style.boxShadow = `0 8px 25px ${color}40`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateX(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {/* Indicador de clase actual */}
+                      {esActual && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '15px',
+                          right: '15px',
+                          background: color,
+                          color: 'white',
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          fontSize: '0.85rem',
+                          fontWeight: '700',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          animation: 'pulse 2s infinite'
+                        }}>
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: 'white',
+                            animation: 'blink 1s infinite'
+                          }} />
+                          EN CURSO
+                        </div>
+                      )}
+
+                      {/* Barra de color lateral */}
+                      <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: '6px',
+                        background: color,
+                        borderRadius: '15px 0 0 15px'
+                      }} />
+
+                      <div style={{ 
+                        display: 'grid',
+                        gridTemplateColumns: 'auto 1fr auto',
+                        gap: '25px',
+                        alignItems: 'center'
+                      }}>
+                        {/* Horario */}
+                        <div style={{ textAlign: 'center', minWidth: '100px' }}>
+                          <div style={{
+                            fontSize: '1.8rem',
+                            fontWeight: '700',
+                            color: color,
+                            marginBottom: '5px'
+                          }}>
+                            {clase.iniTime}
+                          </div>
+                          <div style={{
+                            fontSize: '0.9rem',
+                            color: isDarkMode ? '#aaa' : '#999'
+                          }}>
+                            {clase.endTime}
+                          </div>
+                        </div>
+
+                        {/* Información del curso */}
+                        <div>
+                          <h3 style={{
+                            margin: '0 0 10px 0',
+                            fontSize: '1.4rem',
+                            color: isDarkMode ? '#fff' : '#2b2b2b',
+                            fontWeight: '700'
+                          }}>
+                            {clase.curso}
+                          </h3>
+                          
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '15px',
+                            fontSize: '0.95rem',
+                            color: isDarkMode ? '#aaa' : '#666'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <MapPin size={16} color={color} />
+                              <span style={{ fontWeight: '600' }}>{clase.classroom}</span>
+                            </div>
+                            
+                            {clase.group && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <User size={16} color={color} />
+                                <span>Grupo {clase.group}</span>
+                              </div>
+                            )}
+
+                            <div style={{
+                              background: `${color}20`,
+                              padding: '4px 12px',
+                              borderRadius: '8px',
+                              color: color,
+                              fontWeight: '600',
+                              fontSize: '0.85rem'
+                            }}>
+                              {Math.floor((parseInt(clase.endTime.split(':')[0]) * 60 + parseInt(clase.endTime.split(':')[1]) - 
+                                parseInt(clase.iniTime.split(':')[0]) * 60 - parseInt(clase.iniTime.split(':')[1])) / 60)}h 
+                              {(parseInt(clase.endTime.split(':')[0]) * 60 + parseInt(clase.endTime.split(':')[1]) - 
+                                parseInt(clase.iniTime.split(':')[0]) * 60 - parseInt(clase.iniTime.split(':')[1])) % 60 > 0 
+                                ? ` ${(parseInt(clase.endTime.split(':')[0]) * 60 + parseInt(clase.endTime.split(':')[1]) - 
+                                    parseInt(clase.iniTime.split(':')[0]) * 60 - parseInt(clase.iniTime.split(':')[1])) % 60}min` 
+                                : ''}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Icono */}
+                        <div style={{
+                          width: '60px',
+                          height: '60px',
+                          borderRadius: '15px',
+                          background: `${color}20`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.8rem'
+                        }}>
+                          📚
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Días de la semana - navegación rápida */}
+            <div style={{
+              marginTop: '25px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              {DIAS_SEMANA.map(dia => {
+                const clasesDelDia = obtenerClasesDia(dia);
+                const esHoy = dia === obtenerDiaActual();
+                const esSeleccionado = dia === diaSeleccionado;
+                
+                return (
+                  <button
+                    key={dia}
+                    onClick={() => setDiaSeleccionado(dia)}
+                    style={{
+                      padding: '10px 20px',
+                      background: esSeleccionado 
+                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                        : isDarkMode ? '#1e1e1e' : '#f5f5f5',
+                      color: esSeleccionado ? 'white' : (isDarkMode ? '#fff' : '#666'),
+                      border: esHoy ? '2px solid #667eea' : 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: esSeleccionado ? '700' : '600',
+                      transition: 'all 0.2s',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!esSeleccionado) {
+                        e.currentTarget.style.background = isDarkMode ? '#3d3d3d' : '#e0e0e0';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!esSeleccionado) {
+                        e.currentTarget.style.background = isDarkMode ? '#1e1e1e' : '#f5f5f5';
+                      }
+                    }}
+                  >
+                    {dia.substring(0, 3)}
+                    {clasesDelDia.length > 0 && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: esSeleccionado ? 'white' : '#667eea'
+                      }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Grid de Estadísticas de Asistencias */}
         <div style={{ 
           display: "grid", 
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", 
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
           gap: "20px",
           marginBottom: "40px"
         }}>
@@ -609,7 +1145,23 @@ export function HomePage() {
             transform: translateY(0);
           }
         }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
       `}</style>
     </>
   );
+}
+
+// Función auxiliar para obtener el día actual
+function obtenerDiaActual(): string {
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return dias[new Date().getDay()];
 }

@@ -415,8 +415,8 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
                     }
                   }}
                 >
-                  <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>{item.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center' }}>{item.label}</span>
                 </div>
               ))}
             </div>

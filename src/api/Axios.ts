@@ -2,8 +2,19 @@
 import axios from "axios";
 import { auth } from "../firebaseConfig";
 
-// URL del backend
-const baseURL = 'http://127.0.0.1:8000/api/';
+// ============================================
+// CONFIGURACIÓN DE BASE URL CON PROXY
+// ============================================
+// En desarrollo: usa el proxy de Vite (/api)
+// En producción: usa la URL completa del backend
+const isDevelopment = import.meta.env.DEV;
+const baseURL = isDevelopment ? '/api/' : 'http://127.0.0.1:8000/api/';
+
+console.log('🔧 Configuración Axios:', {
+  isDevelopment,
+  baseURL,
+  mode: import.meta.env.MODE
+});
 
 export const api = axios.create({
     baseURL,
@@ -108,6 +119,11 @@ api.interceptors.response.use(
     } else if (error.request) {
       // La petición se hizo pero no hubo respuesta
       console.error('📡 No response received:', error.request);
+      console.error('📡 Request details:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL
+      });
       throw new Error(
         'No se pudo conectar con el servidor. Verifica que el backend esté corriendo en http://127.0.0.1:8000'
       );

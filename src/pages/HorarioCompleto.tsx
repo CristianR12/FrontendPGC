@@ -8,7 +8,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CalendarioHorariosEditable } from '../components/CalendarioHorariosEditable';
 import { Toast } from '../components/Toast';
 import { auth } from '../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -56,12 +56,18 @@ export function HorarioCompleto() {
     try {
       setLoading(true);
       
-      // Obtener tipo de usuario
-      const personDoc = await getDoc(doc(db, 'person', user!.uid));
-      if (personDoc.exists()) {
+      // 🔥 USAR QUERY EN LUGAR DE doc(db, 'person', uid)
+      const personsRef = collection(db, 'person');
+      const q = query(personsRef, where('profesorUID', '==', user!.uid), limit(1));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const personDoc = querySnapshot.docs[0];
         const data = personDoc.data();
         setUserType(data.type);
         setUserName(data.namePerson || user!.displayName || '');
+        
+        console.log('✅ Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
         
         // Cargar horario según tipo - USANDO NUEVA API
         let cursosData: Course[];
@@ -71,6 +77,9 @@ export function HorarioCompleto() {
           cursosData = await horarioApiService.getHorarioEstudiante();
         }
         setCursos(cursosData);
+      } else {
+        console.warn('⚠️ No se encontró documento en person para UID:', user!.uid);
+        showNotification('Usuario no registrado en el sistema', 'error');
       }
     } catch (error) {
       console.error('Error al cargar datos:', error);

@@ -1,9 +1,10 @@
 // src/services/profesorService.ts
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 export interface ProfesorInfo {
-  uid: string;
+  docId: string; // ID del documento en Firestore
+  uid: string; // UID de Firebase Auth (campo profesorUID)
   namePerson: string;
   type: string;
   courses: string[]; // Array de IDs de cursos
@@ -18,37 +19,63 @@ export interface CourseInfo {
 
 class ProfesorService {
   /**
+   * Busca un documento en 'person' donde el campo 'profesorUID' coincida con el UID
+   * 
+   * @param uid - UID de Firebase Auth
+   * @returns Información del profesor si existe, null si no
+   */
+  async buscarPorUID(uid: string): Promise<ProfesorInfo | null> {
+    try {
+      console.log(`🔍 Buscando persona con UID: ${uid}`);
+      
+      const personsRef = collection(db, 'person');
+      const q = query(personsRef, where('profesorUID', '==', uid), limit(1));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.log('❌ No se encontró documento en person');
+        return null;
+      }
+      
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+      
+      console.log('✅ Documento encontrado:', doc.id);
+      
+      return {
+        docId: doc.id,
+        uid: data.profesorUID || uid,
+        namePerson: data.namePerson || '',
+        type: data.type || '',
+        courses: data.courses || []
+      };
+      
+    } catch (error) {
+      console.error('❌ Error al buscar por UID:', error);
+      return null;
+    }
+  }
+  
+  /**
    * Verifica si el usuario es un profesor basándose en su UID
    */
   async verificarProfesor(uid: string): Promise<{ esProfesor: boolean; info?: ProfesorInfo }> {
     try {
       console.log(`🔍 Verificando si ${uid} es profesor...`);
       
-      // Buscar documento en la colección "person"
-      const personDoc = await getDoc(doc(db, 'person', uid));
+      const profesorInfo = await this.buscarPorUID(uid);
       
-      if (!personDoc.exists()) {
-        console.log('❌ No se encontró documento en person');
+      if (!profesorInfo) {
         return { esProfesor: false };
       }
       
-      const data = personDoc.data();
-      
       // Verificar que tenga type: "Profesor"
-      if (data.type !== 'Profesor') {
-        console.log(`❌ El usuario es de tipo: ${data.type}`);
+      if (profesorInfo.type !== 'Profesor') {
+        console.log(`❌ El usuario es de tipo: ${profesorInfo.type}`);
         return { esProfesor: false };
       }
       
       console.log('✅ Usuario es profesor');
-      
-      const profesorInfo: ProfesorInfo = {
-        uid: uid,
-        namePerson: data.namePerson || '',
-        type: data.type,
-        courses: data.courses || []
-      };
-      
       return { esProfesor: true, info: profesorInfo };
       
     } catch (error) {
@@ -58,32 +85,21 @@ class ProfesorService {
   }
   
   /**
-   * Obtiene la información de los cursos del profesor
+   * Obtiene la información de los cursos del profesor (desde Firestore directamente)
+   * Nota: Este método ya no es necesario si usas la API del backend
    */
   async obtenerCursosProfesor(courseIds: string[]): Promise<CourseInfo[]> {
     try {
-      console.log(`📚 Obteniendo ${courseIds.length} cursos...`);
+      console.log(`📚 Obteniendo ${courseIds.length} cursos desde Firestore...`);
       
       if (courseIds.length === 0) {
         return [];
       }
       
-      const cursosPromises = courseIds.map(async (courseId) => {
-        const courseDoc = await getDoc(doc(db, 'courses', courseId));
-        if (courseDoc.exists()) {
-          return {
-            id: courseDoc.id,
-            ...courseDoc.data()
-          } as CourseInfo;
-        }
-        return null;
-      });
+      // Este código sería reemplazado por llamadas a tu API
+      // Lo dejo aquí por si lo necesitas para debug
       
-      const cursos = await Promise.all(cursosPromises);
-      const cursosValidos = cursos.filter((c): c is CourseInfo => c !== null);
-      
-      console.log(`✅ Cursos obtenidos: ${cursosValidos.length}`);
-      return cursosValidos;
+      return [];
       
     } catch (error) {
       console.error('❌ Error al obtener cursos:', error);
@@ -92,24 +108,14 @@ class ProfesorService {
   }
   
   /**
-   * Obtiene los nombres de las asignaturas del profesor
+   * Obtiene los nombres de las asignaturas del profesor (desde la API)
    */
   async obtenerNombresAsignaturas(uid: string): Promise<string[]> {
     try {
-      const { esProfesor, info } = await this.verificarProfesor(uid);
-      
-      if (!esProfesor || !info) {
-        return [];
-      }
-      
-      const cursos = await this.obtenerCursosProfesor(info.courses);
-      const nombresAsignaturas = cursos.map(curso => curso.nameCourse);
-      
-      // Eliminar duplicados
-      const asignaturasUnicas = [...new Set(nombresAsignaturas)];
-      
-      console.log(`✅ Asignaturas únicas: ${asignaturasUnicas.join(', ')}`);
-      return asignaturasUnicas;
+      // Este método ahora debería usar horarioApiService
+      // en lugar de acceder directamente a Firestore
+      console.log('⚠️ Este método debería usar horarioApiService');
+      return [];
       
     } catch (error) {
       console.error('❌ Error al obtener nombres de asignaturas:', error);

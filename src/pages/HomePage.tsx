@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DashboardCard } from "../components/DashboardCard";
@@ -62,7 +62,7 @@ export function HomePage() {
   }, []);
 
   // Cargar tipo de usuario y horario
-  useEffect(() => {
+ useEffect(() => {
     const cargarDatos = async () => {
       const user = auth.currentUser;
       if (!user) {
@@ -75,11 +75,17 @@ export function HomePage() {
         setLoadingUserType(true);
         setLoadingHorario(true);
         
-        const personDoc = await getDoc(doc(db, 'person', user.uid));
+        // 🔥 USAR QUERY EN LUGAR DE doc(db, 'person', uid)
+        const personsRef = collection(db, 'person');
+        const q = query(personsRef, where('profesorUID', '==', user.uid), limit(1));
+        const querySnapshot = await getDocs(q);
         
-        if (personDoc.exists()) {
+        if (!querySnapshot.empty) {
+          const personDoc = querySnapshot.docs[0];
           const data = personDoc.data();
           setUserType(data.type);
+          
+          console.log('✅ Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
           
           // Cargar horario según tipo de usuario
           let cursosData: Course[];
@@ -89,9 +95,13 @@ export function HomePage() {
             cursosData = await horarioApiService.getHorarioEstudiante();
           }
           setCursos(cursosData);
+        } else {
+          console.warn('⚠️ No se encontró documento en person para UID:', user.uid);
+          showNotification('Usuario no registrado en el sistema', 'error');
         }
       } catch (error) {
         console.error('❌ Error al cargar datos:', error);
+        showNotification('Error al cargar información del usuario', 'error');
       } finally {
         setLoadingUserType(false);
         setLoadingHorario(false);
@@ -100,6 +110,7 @@ export function HomePage() {
 
     cargarDatos();
   }, [auth.currentUser]);
+
 
   // Extraer asignaturas únicas cuando se cargan las asistencias
   useEffect(() => {

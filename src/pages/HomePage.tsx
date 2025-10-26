@@ -38,6 +38,9 @@ export function HomePage() {
   const [cursos, setCursos] = useState<Course[]>([]);
   const [loadingHorario, setLoadingHorario] = useState(true);
 
+  // Array de asignaturas únicas extraídas de las asistencias
+  const [asignaturasDisponibles, setAsignaturasDisponibles] = useState<string[]>([]);
+
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
@@ -78,7 +81,7 @@ export function HomePage() {
           const data = personDoc.data();
           setUserType(data.type);
           
-          // Cargar horario según tipo de usuario - USANDO NUEVA API
+          // Cargar horario según tipo de usuario
           let cursosData: Course[];
           if (data.type === 'Profesor') {
             cursosData = await horarioApiService.getHorariosProfesor();
@@ -97,6 +100,14 @@ export function HomePage() {
 
     cargarDatos();
   }, [auth.currentUser]);
+
+  // Extraer asignaturas únicas cuando se cargan las asistencias
+  useEffect(() => {
+    const asignaturasUnicas = Array.from(
+      new Set(asistencias.map(a => a.asignatura).filter(Boolean))
+    ).sort();
+    setAsignaturasDisponibles(asignaturasUnicas as string[]);
+  }, [asistencias]);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ show: true, message, type });
@@ -126,6 +137,7 @@ export function HomePage() {
       setError(null);
       const data = await asistenciaService.getAll();
       setAsistencias(data);
+      console.log('✅ Asistencias cargadas:', data.length);
     } catch (err: any) {
       const mensaje = err.message || "No se pudieron cargar las asistencias";
       setError(mensaje);
@@ -143,12 +155,17 @@ export function HomePage() {
       return;
     }
 
+    if (!nuevaAsignatura) {
+      showNotification('Por favor selecciona una asignatura', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       await asistenciaService.create({
         estudiante: nuevoEstudiante,
         estadoAsistencia: nuevoEstado,
-        asignatura: nuevaAsignatura || undefined,
+        asignatura: nuevaAsignatura,
       });
 
       showNotification('✅ Asistencia registrada correctamente', 'success');
@@ -337,9 +354,7 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* ============================================ */}
         {/* CALENDARIO DE HORARIOS INTERACTIVO */}
-        {/* ============================================ */}
         {userType && cursos.length > 0 && (
           <CalendarioHorariosEditable 
             courses={cursos} 
@@ -490,13 +505,13 @@ export function HomePage() {
                     fontWeight: "600",
                     color: isDarkMode ? "#fff" : "#555"
                   }}>
-                    Nombre del Estudiante *
+                    Cédula del Estudiante *
                   </label>
                   <input
                     type="text"
                     value={nuevoEstudiante}
                     onChange={(e) => setNuevoEstudiante(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
+                    placeholder="Ej: 1234567890"
                     required
                     disabled={saving}
                     style={{
@@ -549,12 +564,13 @@ export function HomePage() {
                     fontWeight: "600",
                     color: isDarkMode ? "#fff" : "#555"
                   }}>
-                    Asignatura (Opcional)
+                    Asignatura *
                   </label>
                   <select
                     value={nuevaAsignatura}
                     onChange={(e) => setNuevaAsignatura(e.target.value)}
                     disabled={saving}
+                    required
                     style={{
                       width: "100%",
                       padding: "10px",
@@ -565,11 +581,18 @@ export function HomePage() {
                       color: isDarkMode ? "#fff" : "#333"
                     }}
                   >
-                    <option value="">Sin asignar</option>
-                    <option value="Matemáticas">📐 Matemáticas</option>
-                    <option value="Física">⚛️ Física</option>
-                    <option value="Programación">💻 Programación</option>
+                    <option value="">Seleccionar...</option>
+                    {asignaturasDisponibles.map((asignatura) => (
+                      <option key={asignatura} value={asignatura}>
+                        📚 {asignatura}
+                      </option>
+                    ))}
                   </select>
+                  {asignaturasDisponibles.length === 0 && (
+                    <small style={{ color: isDarkMode ? "#aaa" : "#999", display: "block", marginTop: "5px" }}>
+                      No hay asignaturas disponibles. Las asignaturas se cargan desde los cursos en Firebase.
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -660,7 +683,7 @@ export function HomePage() {
               </span>
             </label>
 
-            {["Matemáticas", "Física", "Programación"].map((asignatura) => {
+            {asignaturasDisponibles.map((asignatura) => {
               const count = asistencias.filter(a => a.asignatura === asignatura).length;
               return (
                 <label 

@@ -18,6 +18,7 @@ async function getAuthHeader() {
 export interface Asistencia {
   id: string;
   estudiante: string;
+  estudianteCedula?: string;  // ✅ NUEVO: Cédula del estudiante
   estadoAsistencia: 'Presente' | 'Ausente' | 'Tiene Excusa';
   fechaYhora: string | Date;
   asignatura?: string;
@@ -30,9 +31,7 @@ export interface CreateAsistenciaDto {
 }
 
 export interface UpdateAsistenciaDto {
-  estudiante?: string;
-  estadoAsistencia?: string;
-  asignatura?: string;
+  estadoAsistencia?: string;  // ✅ Solo se actualiza el estado
 }
 
 // Servicio de API con manejo de errores mejorado

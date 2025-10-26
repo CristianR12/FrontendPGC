@@ -22,8 +22,8 @@ export const api = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
-    withCredentials: true,  // Importante para CORS con credenciales
-    timeout: 10000,
+    withCredentials: true,
+    timeout: 30000, // Aumentado a 30 segundos
 });
 
 // ============================================
@@ -38,13 +38,14 @@ api.interceptors.request.use(
       const user = auth.currentUser;
       
       if (user) {
-        // Obtener el token de Firebase
-        const token = await user.getIdToken();
+        // Forzar la actualización del token para asegurar que sea válido
+        const token = await user.getIdToken(true); // true = forceRefresh
         
         // Agregar el token al header Authorization
         config.headers.Authorization = `Bearer ${token}`;
         
         console.log('🔐 Token agregado al request');
+        console.log('🔐 Token (primeros 20 caracteres):', token.substring(0, 20));
       } else {
         console.warn('⚠️ No hay usuario autenticado');
       }

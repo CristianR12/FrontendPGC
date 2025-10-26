@@ -18,9 +18,8 @@ export function EditarAsistenciaPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [estudiante, setEstudiante] = useState('');
+  const [estudianteNombre, setEstudianteNombre] = useState('');
   const [estadoAsistencia, setEstadoAsistencia] = useState('');
-  const [asignatura, setAsignatura] = useState('');
 
   useEffect(() => {
     cargarAsistencia();
@@ -38,9 +37,8 @@ export function EditarAsistenciaPage() {
       const data = await asistenciaService.getById(id);
       setAsistencia(data);
       
-      setEstudiante(data.estudiante);
+      setEstudianteNombre(data.estudiante);
       setEstadoAsistencia(data.estadoAsistencia);
-      setAsignatura(data.asignatura || '');
     } catch (err: any) {
       setError(err.message || 'Error al cargar asistencia');
     } finally {
@@ -65,9 +63,7 @@ export function EditarAsistenciaPage() {
     setSaving(true);
     try {
       await asistenciaService.update(id, {
-        estudiante,
-        estadoAsistencia,
-        asignatura: asignatura || undefined
+        estadoAsistencia
       });
       
       alert('✅ Asistencia actualizada correctamente');
@@ -107,23 +103,20 @@ export function EditarAsistenciaPage() {
               }}>
                 Nombre del Estudiante:
               </label>
-              <input
-                type="text"
-                value={estudiante}
-                onChange={(e) => setEstudiante(e.target.value)}
-                required
-                disabled={saving}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #ccc',
-                  fontSize: '1rem'
-                }}
-              />
+              <div style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #ccc',
+                fontSize: '1rem',
+                backgroundColor: '#f5f5f5',
+                color: '#333'
+              }}>
+                {estudianteNombre}
+              </div>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '30px' }}>
               <label style={{ 
                 display: 'block', 
                 marginBottom: '8px',
@@ -148,33 +141,6 @@ export function EditarAsistenciaPage() {
                 <option value="Presente">Presente</option>
                 <option value="Ausente">Ausente</option>
                 <option value="Tiene Excusa">Tiene Excusa</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '30px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px',
-                fontWeight: 'bold'
-              }}>
-                Asignatura:
-              </label>
-              <select
-                value={asignatura}
-                onChange={(e) => setAsignatura(e.target.value)}
-                disabled={saving}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #ccc',
-                  fontSize: '1rem'
-                }}
-              >
-                <option value="">Seleccionar...</option>
-                <option value="Matemáticas">Matemáticas</option>
-                <option value="Física">Física</option>
-                <option value="Programación">Programación</option>
               </select>
             </div>
 

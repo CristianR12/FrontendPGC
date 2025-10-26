@@ -21,39 +21,32 @@ export const api = axios.create({
     timeout: 30000,
 });
 
-// Variable para evitar múltiples refreshes simultáneos
-let isRefreshing = false;
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  
-  failedQueue = [];
-};
-
+// Interceptor - enviar UID en headers (sin token)
 api.interceptors.request.use(
   async (config) => {
     try {
+      console.log('🔵 Request:', config.method?.toUpperCase(), config.url);
+      
       const user = auth.currentUser;
       
       if (user) {
-        // SIEMPRE forzar refresh del token en cada request
-        const token = await user.getIdToken(true);
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔐 Token actualizado y agregado');
+        // Enviar UID y datos del usuario en headers personalizados
+        config.headers['X-User-UID'] = user.uid;
+        config.headers['X-User-Email'] = user.email || 'N/A';
+        config.headers['X-User-Name'] = user.displayName || 'Usuario';
+        
+        console.log('👤 UID enviado:', user.uid);
       } else {
         console.warn('⚠️ No hay usuario autenticado');
       }
       
+      if (config.data) {
+        console.log('📦 Data:', config.data);
+      }
+      
       return config;
     } catch (error) {
-      console.error('❌ Error en interceptor de request:', error);
+      console.error('❌ Error en interceptor:', error);
       return Promise.reject(error);
     }
   },
@@ -63,66 +56,21 @@ api.interceptors.request.use(
   }
 );
 
+// Interceptor de respuesta
 api.interceptors.response.use(
   (response) => {
     console.log('✅ Response:', response.status, response.config.url);
+    
+    if (response.data) {
+      console.log('📥 Data received:', typeof response.data === 'object' 
+        ? JSON.stringify(response.data).substring(0, 200) + '...'
+        : response.data
+      );
+    }
+    
     return response;
   },
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Si es 401 y no hemos intentado refrescar aún
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Si ya estamos refrescando, esperar
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const user = auth.currentUser;
-        
-        if (!user) {
-          console.error('🔒 No hay usuario autenticado');
-          processQueue(new Error('No autenticado'), null);
-          throw new Error('No estás autenticado. Por favor, inicia sesión nuevamente.');
-        }
-
-        // Forzar refresh del token
-        console.log('🔄 Refrescando token...');
-        const newToken = await user.getIdToken(true);
-        console.log('✅ Token refrescado exitosamente');
-        
-        // Actualizar el header
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        
-        processQueue(null, newToken);
-        isRefreshing = false;
-        
-        // Reintentar el request original
-        return api(originalRequest);
-        
-      } catch (refreshError) {
-        console.error('❌ Error al refrescar token:', refreshError);
-        processQueue(refreshError, null);
-        isRefreshing = false;
-        
-        // Redirigir al login
-        window.location.href = '/';
-        throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-      }
-    }
-
-    // Manejo de otros errores
+  (error) => {
     if (error.response) {
       console.error('❌ Response Error:', {
         status: error.response.status,
@@ -131,13 +79,24 @@ api.interceptors.response.use(
       });
       
       switch (error.response.status) {
+        case 401:
+          console.error('🔒 Error 401: No autenticado');
+          throw new Error('No estás autenticado. Por favor, inicia sesión nuevamente.');
+        
         case 403:
+          console.error('🔒 Error 403: Acceso denegado');
           throw new Error('No tienes permisos para acceder a este recurso');
+        
         case 404:
+          console.error('🔍 Error 404: Recurso no encontrado');
           throw new Error('Recurso no encontrado en el servidor');
+        
         case 500:
+          console.error('🔥 Error 500: Error interno del servidor');
           throw new Error('Error interno del servidor. Por favor, intenta más tarde.');
+        
         default:
+          console.error(`❌ Error ${error.response.status}:`, error.response.data);
           throw new Error(
             error.response.data?.error || 
             error.response.data?.message || 

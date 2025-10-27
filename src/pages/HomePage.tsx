@@ -325,7 +325,7 @@ export function HomePage() {
               marginBottom: "0px",
               fontSize: "2rem",
             }}>
-              👋 Bienvenido, {nombrePersona}
+              Bienvenido, {nombrePersona}
             </h2>
             <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: 0 }}>
               Sistema de Control de Asistencias {userType && `• ${userType}`}

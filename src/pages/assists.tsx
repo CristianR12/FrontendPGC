@@ -11,8 +11,9 @@ import type { Asistencia } from "../services/asistenciaService";
 export function AsistenciasPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [nombresEstudiantes, setNombresEstudiantes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
@@ -38,9 +39,23 @@ export function AsistenciasPage() {
     try {
       setLoading(true);
       setError(null);
+
+      // 1. Obtener asistencias
       const data = await asistenciaService.getAll();
       setAsistencias(data);
       console.log('✅ Asistencias cargadas:', data.length);
+
+      // 2. Extraer cédulas únicas
+      const cedulasUnicas = [...new Set(data.map(a => a.estudiante))];
+      console.log('📋 Cédulas únicas encontradas:', cedulasUnicas.length);
+
+      // 3. Obtener nombres en batch (paralelo)
+      if (cedulasUnicas.length > 0) {
+        const nombres = await asistenciaService.getNombresEstudiantes(cedulasUnicas);
+        setNombresEstudiantes(nombres);
+        console.log('✅ Nombres cargados:', Object.keys(nombres).length);
+      }
+
     } catch (err: any) {
       console.error("❌ Error al cargar asistencias:", err);
       const mensaje = err.message || "No se pudieron cargar las asistencias";
@@ -53,7 +68,7 @@ export function AsistenciasPage() {
 
   const handleDelete = async (id: string) => {
     const asistencia = asistencias.find(a => a.id === id);
-    
+
     if (!asistencia) {
       showNotification('Asistencia no encontrada', 'error');
       return;
@@ -93,14 +108,14 @@ export function AsistenciasPage() {
           onClose={() => setNotification({ ...notification, show: false })}
         />
       )}
-      
+
       <div style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
-        
+
         {/* Header con acciones */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '30px',
           flexWrap: 'wrap',
           gap: '15px'
@@ -113,9 +128,9 @@ export function AsistenciasPage() {
               Mostrando {asistenciasFiltradas.length} de {asistencias.length} registros
             </p>
           </div>
-          
+
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button 
+            <button
               onClick={cargarAsistencias}
               disabled={loading}
               style={{
@@ -147,8 +162,8 @@ export function AsistenciasPage() {
 
           {/* Barra de búsqueda */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ 
-              display: 'block', 
+            <label style={{
+              display: 'block',
               marginBottom: '8px',
               fontWeight: '600',
               color: '#555'
@@ -173,8 +188,8 @@ export function AsistenciasPage() {
 
           {/* Filtros por asignatura */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ 
-              display: 'block', 
+            <label style={{
+              display: 'block',
               marginBottom: '8px',
               fontWeight: '600',
               color: '#555'
@@ -224,8 +239,8 @@ export function AsistenciasPage() {
 
           {/* Filtros por estado */}
           <div>
-            <label style={{ 
-              display: 'block', 
+            <label style={{
+              display: 'block',
               marginBottom: '8px',
               fontWeight: '600',
               color: '#555'
@@ -315,7 +330,7 @@ export function AsistenciasPage() {
               No se encontraron resultados
             </h3>
             <p style={{ color: '#999', marginBottom: '20px' }}>
-              {busqueda 
+              {busqueda
                 ? `No hay estudiantes que coincidan con "${busqueda}"`
                 : 'No hay asistencias con los filtros seleccionados'
               }
@@ -347,6 +362,7 @@ export function AsistenciasPage() {
           }}>
             <AsistenciaTable
               asistencias={asistenciasFiltradas}
+              nombresEstudiantes={nombresEstudiantes}
               onDelete={handleDelete}
               onEdit={handleEdit}
             />

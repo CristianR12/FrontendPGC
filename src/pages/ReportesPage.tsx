@@ -25,6 +25,13 @@ export function ReportesPage() {
     type: 'success' | 'error' | 'info';
   }>({ show: false, message: '', type: 'info' });
 
+  // Estados para el modal de filtros
+  const [mostrarModalFiltros, setMostrarModalFiltros] = useState(false);
+  const [filtroFecha, setFiltroFecha] = useState('');
+  const [filtroCurso, setFiltroCurso] = useState('');
+  const [cursosUnicos, setCursosUnicos] = useState<string[]>([]);
+  const [formatoSeleccionado, setFormatoSeleccionado] = useState<'csv' | 'pdf' | 'excel' | null>(null);
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
     setNotification({ show: true, message, type });
   };
@@ -38,6 +45,14 @@ export function ReportesPage() {
       setLoading(true);
       const data = await asistenciaService.getAll();
       setAsistencias(data);
+
+      // Extraer cursos únicos
+      const cursos = [...new Set(
+        data
+          .map(a => a.asignatura)
+          .filter((asignatura): asignatura is string => asignatura !== null && asignatura !== undefined)
+      )].sort();
+      setCursosUnicos(cursos);
 
       const cedulasUnicas = [...new Set(data.map(a => a.estudiante))];
       if (cedulasUnicas.length > 0) {
@@ -79,16 +94,76 @@ export function ReportesPage() {
     }
   };
 
-  const generarCSV = () => {
-    if (asistencias.length === 0) {
-      showNotification('No hay datos para exportar', 'error');
+  // Función para obtener la fecha en formato YYYY-MM-DD
+  const obtenerFechaFormato = (fecha: any) => {
+    try {
+      const d = new Date(fecha);
+      return d.toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
+  // Filtrar asistencias según fecha y curso
+  const obtenerAsistenciasFiltradas = () => {
+    let filtradas = [...asistencias];
+
+    if (filtroFecha) {
+      filtradas = filtradas.filter(a => obtenerFechaFormato(a.fechaYhora) === filtroFecha);
+    }
+
+    if (filtroCurso) {
+      filtradas = filtradas.filter(a => a.asignatura === filtroCurso);
+    }
+
+    return filtradas;
+  };
+
+  // Abrir modal con formato seleccionado
+  const abrirModalFiltros = (formato: 'csv' | 'pdf' | 'excel') => {
+    setFormatoSeleccionado(formato);
+    setFiltroFecha('');
+    setFiltroCurso('');
+    setMostrarModalFiltros(true);
+  };
+
+  // Cerrar modal
+  const cerrarModalFiltros = () => {
+    setMostrarModalFiltros(false);
+    setFormatoSeleccionado(null);
+    setFiltroFecha('');
+    setFiltroCurso('');
+  };
+
+  // Generar reporte con filtros
+  const generarReporte = () => {
+    const asistenciasFiltradas = obtenerAsistenciasFiltradas();
+
+    if (asistenciasFiltradas.length === 0) {
+      showNotification('No hay datos para exportar con los filtros seleccionados', 'error');
       return;
     }
 
+    switch (formatoSeleccionado) {
+      case 'csv':
+        generarCSV(asistenciasFiltradas);
+        break;
+      case 'pdf':
+        generarPDF(asistenciasFiltradas);
+        break;
+      case 'excel':
+        generarExcel(asistenciasFiltradas);
+        break;
+    }
+
+    cerrarModalFiltros();
+  };
+
+  const generarCSV = (datos: Asistencia[] = asistencias) => {
     setGenerando(true);
     try {
       const headers = ['Cédula', 'Nombre Estudiante', 'Asignatura', 'Fecha y Hora', 'Estado'];
-      const rows = asistencias.map(a => [
+      const rows = datos.map(a => [
         a.estudiante,
         getNombreEstudiante(a.estudiante),
         a.asignatura || 'N/A',
@@ -130,16 +205,9 @@ export function ReportesPage() {
     }
   };
 
-  const generarPDF = () => {
-    if (asistencias.length === 0) {
-      showNotification('No hay datos para exportar', 'error');
-      return;
-    }
-
+  const generarPDF = (datos: Asistencia[] = asistencias) => {
     setGenerando(true);
     try {
-      console.log('Iniciando generación de PDF...');
-
       const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
@@ -149,10 +217,8 @@ export function ReportesPage() {
 
       let yPosition = 12;
 
-      console.log('PDF creado correctamente');
-
       // Título
-      doc.setTextColor(0, 0, 0); // negro
+      doc.setTextColor(0, 0, 0);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.text('Reporte de Asistencias', marginLeft, yPosition);
@@ -161,10 +227,12 @@ export function ReportesPage() {
       // Información general
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text(`Fecha: ${new Date().toLocaleString('es-ES')} | Total: ${asistencias.length} registros`, marginLeft, yPosition);
+      doc.setTextColor(0, 0, 0);
+      const infoTexto = `Fecha: ${new Date().toLocaleString('es-ES')} | Total: ${datos.length} registros${filtroFecha ? ` | Filtro Fecha: ${filtroFecha}` : ''}${filtroCurso ? ` | Curso: ${filtroCurso}` : ''}`;
+      doc.text(infoTexto, marginLeft, yPosition);
       yPosition += 6;
 
-      // Definir columnas con proporciones
+      // Definir columnas
       const columns = [
         { header: 'Cédula', width: usableWidth * 0.14, key: 'cedula' },
         { header: 'Nombre', width: usableWidth * 0.28, key: 'nombre' },
@@ -176,64 +244,60 @@ export function ReportesPage() {
       // Función para calcular altura de texto con saltos de línea
       const getTextHeight = (text: string, maxWidth: number, fontSize: number): number => {
         doc.setFontSize(fontSize);
-        const lines = doc.splitTextToSize(text, maxWidth);
-        return lines.length * (fontSize * 0.35); // Aproximado: cada línea tiene altura de 0.35 veces el fontSize
+        const lines = doc.splitTextToSize(String(text), maxWidth - 1);
+        return lines.length * (fontSize * 0.35);
       };
 
       // Función para dibujar encabezados
-      // Función para dibujar encabezados
       const drawHeaders = () => {
-        const headerRowHeight = 8;
-
-        // 🔹 Estilo visual mejorado
+        const headerRowHeight = 7;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
-
-        // Fondo verde azulado (similar al logo UDEC)
-        doc.setFillColor(43, 122, 120); // fondo
-        doc.setDrawColor(43, 122, 120); // borde
-        doc.setLineWidth(0.3);
-
-        // 🔹 Texto blanco para contraste
-        doc.setTextColor(255, 255, 255);
+        doc.setTextColor(0, 0, 0); // TEXTO NEGRO
+        doc.setDrawColor(0, 0, 0); // Borde NEGRO
+        doc.setLineWidth(0.2);
 
         let xPos = marginLeft;
 
         columns.forEach((col) => {
-          // Dibujar celda de fondo
-          doc.rect(xPos, yPosition, col.width, headerRowHeight, 'FD');
-
-          // Dibujar texto centrado
+          // Dibujar SOLO borde (sin relleno, el fondo ya es blanco del PDF)
+          doc.rect(xPos, yPosition, col.width, headerRowHeight);
+          
+          // Dibujar texto centrado vertical y horizontalmente
+          const textY = yPosition + headerRowHeight / 2 + 1;
           doc.text(
             col.header,
             xPos + col.width / 2,
-            yPosition + headerRowHeight / 2 + 2, // mejor centrado vertical
-            { align: 'center', maxWidth: col.width - 2 }
+            textY,
+            { align: 'center' }
           );
-
+          
           xPos += col.width;
         });
 
-        // 🔹 Asegurar que después de la cabecera el texto vuelva a negro
-        doc.setTextColor(0, 0, 0);
-
-        yPosition += headerRowHeight + 0.5;
+        yPosition += headerRowHeight + 0.2;
       };
 
-
-      // Función para dibujar una fila con ajuste dinámico de altura
+      // Función para dibujar una fila con ajuste dinámico y texto completo
       const drawRow = (rowData: string[], rowIndex: number) => {
-        // Calcular altura necesaria para esta fila
         const fontSize = 7;
-        let maxRowHeight = 4;
+        let maxRowHeight = 6;
 
+        // Calcular altura máxima necesaria para esta fila
         rowData.forEach((data, colIndex) => {
           const col = columns[colIndex];
-          const height = getTextHeight(String(data), col.width - 1, fontSize);
-          maxRowHeight = Math.max(maxRowHeight, height);
+          const height = getTextHeight(String(data), col.width, fontSize);
+          maxRowHeight = Math.max(maxRowHeight, height + 2);
         });
 
-        const rowHeight = Math.max(maxRowHeight + 1, 5);
+        const rowHeight = Math.max(maxRowHeight, 6);
+
+        // Verificar si necesita nueva página ANTES de dibujar
+        if (yPosition + rowHeight > pageHeight - 12) {
+          doc.addPage();
+          yPosition = 12;
+          drawHeaders();
+        }
 
         // Fondo alternado
         if (rowIndex % 2 === 0) {
@@ -246,15 +310,15 @@ export function ReportesPage() {
         }
 
         // Dibujar bordes
-        doc.setDrawColor(200);
-        doc.setLineWidth(0.2);
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.3);
         let xPos = marginLeft;
         columns.forEach((col) => {
           doc.rect(xPos, yPosition, col.width, rowHeight);
           xPos += col.width;
         });
 
-        // Texto de la fila
+        // Texto de la fila - TODO EN NEGRO
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fontSize);
         doc.setTextColor(0, 0, 0);
@@ -263,13 +327,18 @@ export function ReportesPage() {
         rowData.forEach((data, colIndex) => {
           const col = columns[colIndex];
           const text = String(data);
-          const lines = doc.splitTextToSize(text, col.width - 1);
-          const lineHeight = 2.8;
+          
+          // Dividir el texto en múltiples líneas
+          const lines = doc.splitTextToSize(text, col.width - 1.5);
+          const lineHeight = 2.5;
           const totalHeight = lines.length * lineHeight;
+          
+          // Centrar verticalmente el texto en la celda
           const startY = yPosition + (rowHeight - totalHeight) / 2 + 2;
 
+          // Dibujar cada línea
           lines.forEach((line: string, idx: number) => {
-            doc.text(line, xPos + 0.5, startY + idx * lineHeight, { maxWidth: col.width - 1 });
+            doc.text(line, xPos + 0.75, startY + idx * lineHeight);
           });
 
           xPos += col.width;
@@ -282,14 +351,7 @@ export function ReportesPage() {
       drawHeaders();
 
       // Dibujar filas de datos
-      asistencias.forEach((asistencia, idx) => {
-        // Verificar si necesita nueva página
-        if (yPosition > pageHeight - 15) {
-          doc.addPage();
-          yPosition = 12;
-          drawHeaders();
-        }
-
+      datos.forEach((asistencia, idx) => {
         const rowData = [
           asistencia.estudiante,
           getNombreEstudiante(asistencia.estudiante),
@@ -333,15 +395,10 @@ export function ReportesPage() {
     }
   };
 
-  const generarExcel = () => {
-    if (asistencias.length === 0) {
-      showNotification('No hay datos para exportar', 'error');
-      return;
-    }
-
+  const generarExcel = (datos: Asistencia[] = asistencias) => {
     setGenerando(true);
     try {
-      const data = asistencias.map(a => ({
+      const data = datos.map(a => ({
         'Cédula': a.estudiante,
         'Nombre Estudiante': getNombreEstudiante(a.estudiante),
         'Asignatura': a.asignatura || 'N/A',
@@ -392,10 +449,10 @@ export function ReportesPage() {
       const summary = [
         ['RESUMEN DE ASISTENCIAS'],
         [],
-        ['Total de registros', asistencias.length],
-        ['Presentes', asistencias.filter(a => a.estadoAsistencia === 'Presente').length],
-        ['Ausentes', asistencias.filter(a => a.estadoAsistencia === 'Ausente').length],
-        ['Con Excusa', asistencias.filter(a => a.estadoAsistencia === 'Tiene Excusa').length],
+        ['Total de registros', datos.length],
+        ['Presentes', datos.filter(a => a.estadoAsistencia === 'Presente').length],
+        ['Ausentes', datos.filter(a => a.estadoAsistencia === 'Ausente').length],
+        ['Con Excusa', datos.filter(a => a.estadoAsistencia === 'Tiene Excusa').length],
         [],
         ['Fecha de generación', new Date().toLocaleString('es-ES')]
       ];
@@ -553,7 +610,7 @@ export function ReportesPage() {
             gap: '15px'
           }}>
             <button
-              onClick={generarCSV}
+              onClick={() => abrirModalFiltros('csv')}
               disabled={generando || asistencias.length === 0}
               style={{
                 padding: '20px',
@@ -587,7 +644,7 @@ export function ReportesPage() {
             </button>
 
             <button
-              onClick={generarPDF}
+              onClick={() => abrirModalFiltros('pdf')}
               disabled={generando || asistencias.length === 0}
               style={{
                 padding: '20px',
@@ -621,7 +678,7 @@ export function ReportesPage() {
             </button>
 
             <button
-              onClick={generarExcel}
+              onClick={() => abrirModalFiltros('excel')}
               disabled={generando || asistencias.length === 0}
               style={{
                 padding: '20px',
@@ -707,6 +764,162 @@ export function ReportesPage() {
           </button>
         </div>
       </div>
+
+      {/* MODAL DE FILTROS */}
+      {mostrarModalFiltros && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <h2 style={{ color: '#2b7a78', marginBottom: '25px', textAlign: 'center' }}>
+              🔍 Filtrar Reporte
+            </h2>
+
+            {/* Selector de Fecha */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#555'
+              }}>
+                📅 Fecha (Opcional):
+              </label>
+              <input
+                type="date"
+                value={filtroFecha}
+                onChange={(e) => setFiltroFecha(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '2px solid #e0e0e0',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Selector de Curso */}
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '600',
+                color: '#555'
+              }}>
+                📚 Curso/Asignatura (Opcional):
+              </label>
+              <select
+                value={filtroCurso}
+                onChange={(e) => setFiltroCurso(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '2px solid #e0e0e0',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="">-- Selecciona un curso --</option>
+                {cursosUnicos.map(curso => (
+                  <option key={curso} value={curso}>
+                    {curso}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Información de filtros aplicados */}
+            {(filtroFecha || filtroCurso) && (
+              <div style={{
+                background: '#f0f7ff',
+                border: '2px solid #2196F3',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '20px',
+                fontSize: '0.9rem',
+                color: '#0066cc'
+              }}>
+                <strong>Filtros aplicados:</strong>
+                <div>{filtroFecha ? `📅 Fecha: ${filtroFecha}` : ''}</div>
+                <div>{filtroCurso ? `📚 Curso: ${filtroCurso}` : ''}</div>
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={cerrarModalFiltros}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#9e9e9e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#757575';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#9e9e9e';
+                }}
+              >
+                ❌ Cancelar
+              </button>
+              <button
+                onClick={generarReporte}
+                disabled={generando}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#2b7a78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: generando ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s',
+                  opacity: generando ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!generando) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#1f5954';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#2b7a78';
+                }}
+              >
+                {generando ? '⏳ Generando...' : '✅ Generar Reporte'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

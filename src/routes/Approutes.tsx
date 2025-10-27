@@ -29,6 +29,12 @@ import { ReportesPage } from '../pages/ReportesPage';
 // ============================================
 import { GestionHorariosFirebase } from '../pages/GestionHorariosFirebase';
 
+// ============================================
+// 📊 IMPORTACIONES PARA ESTADÍSTICAS Y ANÁLISIS
+// ============================================
+import { EstadisticasPage } from '../pages/EstadisticasPage';
+import { AnalisisPage } from '../pages/AnalisisPage';
+
 /**
  * Componente de rutas principal
  * Gestiona la autenticación y redirecciona según el estado del usuario
@@ -44,6 +50,8 @@ import { GestionHorariosFirebase } from '../pages/GestionHorariosFirebase';
  * - /reportes → Generación de reportes
  * - /horario-completo → Ver horario semanal completo
  * - /gestion-horarios → Gestionar horarios (profesores)
+ * - /estadisticas → Panel de estadísticas de asistencias
+ * - /analisis → Análisis avanzado de asistencias
  * - * → Página 404
  */
 function AppRoutes() {
@@ -203,6 +211,49 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <GestionHorariosFirebase />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* ============================================ */}
+          {/* 📊 RUTAS DE ESTADÍSTICAS Y ANÁLISIS */}
+          {/* ============================================ */}
+
+          {/* Estadísticas de Asistencias */}
+          {/* 
+            Características:
+            - KPIs principales (Total, Tasa, Presentes, Ausentes)
+            - Distribución de estados
+            - Asistencia por curso
+            - Estudiantes con baja asistencia (<80%)
+            - Visualizaciones en tiempo real
+          */}
+          <Route 
+            path="/estadisticas" 
+            element={
+              <ProtectedRoute>
+                <EstadisticasPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Análisis Avanzado de Asistencias */}
+          {/* 
+            Características:
+            - Filtros por fecha y curso
+            - Tendencia de asistencia
+            - Análisis por día de semana
+            - Top 10 estudiantes
+            - Desempeño por curso
+            - KPIs filtrados
+            
+            Nota: Similar a Power BI, muy completo
+          */}
+          <Route 
+            path="/analisis" 
+            element={
+              <ProtectedRoute>
+                <AnalisisPage />
               </ProtectedRoute>
             } 
           />

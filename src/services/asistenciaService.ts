@@ -18,7 +18,7 @@ async function getAuthHeader() {
 export interface Asistencia {
   id: string;
   estudiante: string;
-  estudianteCedula?: string;  // ✅ NUEVO: Cédula del estudiante
+  estudianteCedula?: string;
   estadoAsistencia: 'Presente' | 'Ausente' | 'Tiene Excusa';
   fechaYhora: string | Date;
   asignatura?: string;
@@ -31,7 +31,7 @@ export interface CreateAsistenciaDto {
 }
 
 export interface UpdateAsistenciaDto {
-  estadoAsistencia?: string;  // ✅ Solo se actualiza el estado
+  estadoAsistencia?: string;
 }
 
 // Servicio de API con manejo de errores mejorado
@@ -53,7 +53,6 @@ export const asistenciaService = {
     }
   },
 
-  
   // Obtener una asistencia por ID
   async getById(id: string): Promise<Asistencia> {
     try {
@@ -72,7 +71,7 @@ export const asistenciaService = {
   },
 
   // Crear nueva asistencia
- async create(data: CreateAsistenciaDto): Promise<Asistencia> {
+  async create(data: CreateAsistenciaDto): Promise<Asistencia> {
     try {
       console.log('➕ Creando nueva asistencia:', data);
       const headers = await getAuthHeader();
@@ -125,6 +124,56 @@ export const asistenciaService = {
       throw new Error('Error al eliminar la asistencia');
     }
   },
+
+  // ✅ NUEVO: Buscar nombre de estudiante por cédula
+  async getNombreEstudiante(cedula: string): Promise<string> {
+    try {
+      console.log(`🔍 Buscando nombre para cédula: ${cedula}`);
+      const headers = await getAuthHeader();
+      const response = await api.get(`/estudiantes/nombre/${cedula}/`, { headers });
+      console.log('✅ Nombre obtenido:', response.data.nombre);
+      return response.data.nombre;
+    } catch (error: any) {
+      console.error(`❌ Error al obtener nombre para ${cedula}:`, error);
+      // Si falla, retorna la cédula
+      return cedula;
+    }
+  },
+
+  /**
+ * Obtiene los nombres de múltiples estudiantes en batch
+ */
+async getNombresEstudiantes(cedulas: string[]): Promise<Record<string, string>> {
+  try {
+    console.log(`🔍 Buscando nombres para ${cedulas.length} estudiantes`);
+    const headers = await getAuthHeader();
+    
+    const nombres: Record<string, string> = {};
+    
+    // Hacer peticiones en paralelo
+    const promesas = cedulas.map(async (cedula) => {
+      try {
+        const response = await api.get(`/estudiantes/nombre/${cedula}/`, { headers });
+        return { cedula, nombre: response.data.nombre };
+      } catch (error) {
+        console.warn(`⚠️ No se pudo obtener nombre para ${cedula}`);
+        return { cedula, nombre: cedula };
+      }
+    });
+    
+    const resultados = await Promise.all(promesas);
+    
+    resultados.forEach(({ cedula, nombre }) => {
+      nombres[cedula] = nombre;
+    });
+    
+    console.log('✅ Nombres obtenidos:', nombres);
+    return nombres;
+  } catch (error: any) {
+    console.error('❌ Error al obtener nombres:', error);
+    return {};
+  }
+},
 
   // Verificar conexión con el backend
   async testConnection(): Promise<boolean> {

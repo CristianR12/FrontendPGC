@@ -23,9 +23,10 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [nombresEstudiantes, setNombresEstudiantes] = useState<Record<string, string>>({});
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
+
   const [showNuevoForm, setShowNuevoForm] = useState(false);
   const [nuevoEstudiante, setNuevoEstudiante] = useState("");
   const [nuevoEstado, setNuevoEstado] = useState("");
@@ -44,7 +45,7 @@ export function HomePage() {
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: 'success' | 'error' | 'info' ;
+    type: 'success' | 'error' | 'info';
   }>({ show: false, message: '', type: 'info' });
 
   // Detectar cambios en el modo oscuro
@@ -52,17 +53,17 @@ export function HomePage() {
     const checkDarkMode = () => {
       setIsDarkMode(document.body.classList.contains('dark-mode'));
     };
-    
+
     checkDarkMode();
-    
+
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+
     return () => observer.disconnect();
   }, []);
 
   // Cargar tipo de usuario y horario
- useEffect(() => {
+  useEffect(() => {
     const cargarDatos = async () => {
       const user = auth.currentUser;
       if (!user) {
@@ -74,19 +75,19 @@ export function HomePage() {
       try {
         setLoadingUserType(true);
         setLoadingHorario(true);
-        
+
         // 🔥 USAR QUERY EN LUGAR DE doc(db, 'person', uid)
         const personsRef = collection(db, 'person');
         const q = query(personsRef, where('profesorUID', '==', user.uid), limit(1));
         const querySnapshot = await getDocs(q);
-        
+
         if (!querySnapshot.empty) {
           const personDoc = querySnapshot.docs[0];
           const data = personDoc.data();
           setUserType(data.type);
-          
+
           console.log('✅ Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
-          
+
           // Cargar horario según tipo de usuario
           let cursosData: Course[];
           if (data.type === 'Profesor') {
@@ -129,7 +130,7 @@ export function HomePage() {
     presentes: asistencias.filter(a => a.estadoAsistencia === "Presente").length,
     ausentes: asistencias.filter(a => a.estadoAsistencia === "Ausente").length,
     conExcusa: asistencias.filter(a => a.estadoAsistencia === "Tiene Excusa").length,
-    tasaAsistencia: asistencias.length > 0 
+    tasaAsistencia: asistencias.length > 0
       ? ((asistencias.filter(a => a.estadoAsistencia === "Presente").length / asistencias.length) * 100).toFixed(1)
       : 0
   };
@@ -146,9 +147,23 @@ export function HomePage() {
     try {
       setLoading(true);
       setError(null);
+
+      // 1. Obtener asistencias
       const data = await asistenciaService.getAll();
       setAsistencias(data);
       console.log('✅ Asistencias cargadas:', data.length);
+
+      // 2. Extraer cédulas únicas
+      const cedulasUnicas = [...new Set(data.map(a => a.estudiante))];
+      console.log('📋 Cédulas únicas encontradas:', cedulasUnicas.length);
+
+      // 3. Obtener nombres en batch (paralelo)
+      if (cedulasUnicas.length > 0) {
+        const nombres = await asistenciaService.getNombresEstudiantes(cedulasUnicas);
+        setNombresEstudiantes(nombres);
+        console.log('✅ Nombres cargados:', Object.keys(nombres).length);
+      }
+
     } catch (err: any) {
       const mensaje = err.message || "No se pudieron cargar las asistencias";
       setError(mensaje);
@@ -160,7 +175,7 @@ export function HomePage() {
 
   const handleCrearAsistencia = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nuevoEstudiante || !nuevoEstado) {
       showNotification('Por favor completa todos los campos requeridos', 'error');
       return;
@@ -198,7 +213,7 @@ export function HomePage() {
 
   const handleDelete = async (id: string) => {
     const asistencia = asistencias.find(a => a.id === id);
-    
+
     if (!asistencia) {
       showNotification('Asistencia no encontrada', 'error');
       return;
@@ -253,7 +268,7 @@ export function HomePage() {
   if (error && asistencias.length === 0) {
     return <ErrorMessage message={error} onRetry={cargarAsistencias} />;
   }
-  
+
   return (
     <>
       {notification.show && (
@@ -264,19 +279,19 @@ export function HomePage() {
         />
       )}
       <Header title="Revisa como van tus asistencias" showLogout={false} />
-      
+
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
-        
+
         {/* Sección de bienvenida */}
         <div style={{
-          background: isDarkMode 
+          background: isDarkMode
             ? "linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)"
             : "linear-gradient(135deg, #667eea 0%, #16dd0fff 100%)",
           color: "white",
           padding: "30px",
           borderRadius: "15px",
           marginBottom: "30px",
-          boxShadow: isDarkMode 
+          boxShadow: isDarkMode
             ? "0 4px 15px rgba(0,0,0,0.5)"
             : "0 4px 15px rgba(0,0,0,0.2)",
           border: isDarkMode ? "1px solid #3d3d3d" : "none"
@@ -289,8 +304,8 @@ export function HomePage() {
             gap: '15px'
           }}>
             <div>
-              <h2 style={{ 
-                marginBottom: "10px", 
+              <h2 style={{
+                marginBottom: "10px",
                 fontSize: "2rem",
               }}>
                 👋 Bienvenido, {auth.currentUser?.displayName || auth.currentUser?.email}
@@ -367,8 +382,8 @@ export function HomePage() {
 
         {/* CALENDARIO DE HORARIOS INTERACTIVO */}
         {userType && cursos.length > 0 && (
-          <CalendarioHorariosEditable 
-            courses={cursos} 
+          <CalendarioHorariosEditable
+            courses={cursos}
             isEditable={userType === 'Profesor'}
             isDarkMode={isDarkMode}
             onUpdate={handleUpdateHorario}
@@ -376,9 +391,9 @@ export function HomePage() {
         )}
 
         {/* Grid de Estadísticas de Asistencias */}
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: "20px",
           marginBottom: "40px"
         }}>
@@ -388,21 +403,21 @@ export function HomePage() {
             icon="📋"
             color="#4CAF50"
           />
-          
+
           <DashboardCard
             title="Presentes"
             value={stats.presentes}
             icon="✅"
             color="#2196F3"
           />
-          
+
           <DashboardCard
             title="Ausentes"
             value={stats.ausentes}
             icon="❌"
             color="#f44336"
           />
-          
+
           <DashboardCard
             title="Con Excusa"
             value={stats.conExcusa}
@@ -503,15 +518,15 @@ export function HomePage() {
             </h3>
 
             <form onSubmit={handleCrearAsistencia}>
-              <div style={{ 
-                display: "grid", 
+              <div style={{
+                display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "15px",
                 marginBottom: "20px"
               }}>
                 <div>
-                  <label style={{ 
-                    display: "block", 
+                  <label style={{
+                    display: "block",
                     marginBottom: "5px",
                     fontWeight: "600",
                     color: isDarkMode ? "#fff" : "#555"
@@ -538,8 +553,8 @@ export function HomePage() {
                 </div>
 
                 <div>
-                  <label style={{ 
-                    display: "block", 
+                  <label style={{
+                    display: "block",
                     marginBottom: "5px",
                     fontWeight: "600",
                     color: isDarkMode ? "#fff" : "#555"
@@ -569,8 +584,8 @@ export function HomePage() {
                 </div>
 
                 <div>
-                  <label style={{ 
-                    display: "block", 
+                  <label style={{
+                    display: "block",
                     marginBottom: "5px",
                     fontWeight: "600",
                     color: isDarkMode ? "#fff" : "#555"
@@ -660,7 +675,7 @@ export function HomePage() {
           boxShadow: isDarkMode ? "0 2px 8px rgba(0,0,0,0.5)" : "0 2px 8px rgba(0,0,0,0.08)",
           border: isDarkMode ? "1px solid #3d3d3d" : "none"
         }}>
-          <div style={{ 
+          <div style={{
             display: "flex",
             gap: "15px",
             flexWrap: "wrap",
@@ -668,15 +683,15 @@ export function HomePage() {
             justifyContent: "center"
           }}>
             <strong style={{ color: isDarkMode ? "#aaa" : "#555" }}>Filtrar por asignatura:</strong>
-            
-            <label style={{ 
-              display: "flex", 
-              alignItems: "center", 
+
+            <label style={{
+              display: "flex",
+              alignItems: "center",
               gap: "5px",
               cursor: "pointer",
               padding: "8px 15px",
               borderRadius: "20px",
-              background: filtroAsignatura === null 
+              background: filtroAsignatura === null
                 ? (isDarkMode ? "#4db6ac" : "#e3f2fd")
                 : "transparent",
               transition: "all 0.3s",
@@ -697,16 +712,16 @@ export function HomePage() {
             {asignaturasDisponibles.map((asignatura) => {
               const count = asistencias.filter(a => a.asignatura === asignatura).length;
               return (
-                <label 
+                <label
                   key={asignatura}
-                  style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
                     gap: "5px",
                     cursor: "pointer",
                     padding: "8px 15px",
                     borderRadius: "20px",
-                    background: filtroAsignatura === asignatura 
+                    background: filtroAsignatura === asignatura
                       ? (isDarkMode ? "#4db6ac" : "#e3f2fd")
                       : "transparent",
                     transition: "all 0.3s",
@@ -745,7 +760,7 @@ export function HomePage() {
               No hay asistencias registradas
             </h3>
             <p style={{ color: isDarkMode ? "#aaa" : "#999" }}>
-              {filtroAsignatura 
+              {filtroAsignatura
                 ? `No hay registros para ${filtroAsignatura}`
                 : "Comienza registrando tu primera asistencia"
               }
@@ -777,6 +792,7 @@ export function HomePage() {
           }}>
             <AsistenciaTable
               asistencias={asistenciasFiltradas}
+              nombresEstudiantes={nombresEstudiantes}
               onDelete={handleDelete}
               onEdit={handleEdit}
             />

@@ -19,7 +19,9 @@ export function EditarAsistenciaPage() {
   const [saving, setSaving] = useState(false);
 
   const [estudianteNombre, setEstudianteNombre] = useState('');
+  const [estudianteCedula, setEstudianteCedula] = useState('');
   const [estadoAsistencia, setEstadoAsistencia] = useState('');
+  const [loadingNombre, setLoadingNombre] = useState(false);
 
   useEffect(() => {
     cargarAsistencia();
@@ -37,8 +39,17 @@ export function EditarAsistenciaPage() {
       const data = await asistenciaService.getById(id);
       setAsistencia(data);
       
-      setEstudianteNombre(data.estudiante);
+      // Guarda la cédula (que viene en el campo estudiante)
+      const cedula = data.estudiante;
+      setEstudianteCedula(cedula);
       setEstadoAsistencia(data.estadoAsistencia);
+      
+      // ✅ AHORA busca el nombre SOLO cuando se carga la página de edición
+      setLoadingNombre(true);
+      const nombre = await asistenciaService.getNombreEstudiante(cedula);
+      setEstudianteNombre(nombre);
+      setLoadingNombre(false);
+      
     } catch (err: any) {
       setError(err.message || 'Error al cargar asistencia');
     } finally {
@@ -101,7 +112,7 @@ export function EditarAsistenciaPage() {
                 marginBottom: '8px',
                 fontWeight: 'bold'
               }}>
-                Nombre del Estudiante:
+                Estudiante:
               </label>
               <div style={{
                 width: '100%',
@@ -112,7 +123,18 @@ export function EditarAsistenciaPage() {
                 backgroundColor: '#f5f5f5',
                 color: '#333'
               }}>
-                {estudianteNombre}
+                {loadingNombre ? (
+                  <span style={{ color: '#666' }}>🔍 Buscando nombre...</span>
+                ) : (
+                  <>
+                    {estudianteNombre}
+                    {estudianteNombre !== estudianteCedula && (
+                      <span style={{ color: '#666', fontSize: '0.9em', marginLeft: '8px' }}>
+                        (CC: {estudianteCedula})
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 

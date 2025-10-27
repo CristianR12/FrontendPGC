@@ -19,6 +19,7 @@ export function AsistenciasPage() {
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [asignaturasUnicas, setAsignaturasUnicas] = useState<string[]>([]);
 
   // Notificaciones
   const [notification, setNotification] = useState<{
@@ -56,6 +57,16 @@ export function AsistenciasPage() {
         console.log('✅ Nombres cargados:', Object.keys(nombres).length);
       }
 
+      // 4. Extraer asignaturas únicas dinámicamente de Firebase
+      const asignaturasSet = new Set(
+        data
+          .map(a => a.asignatura)
+          .filter((asignatura): asignatura is string => asignatura !== null && asignatura !== undefined)
+      );
+      const asignaturas = Array.from(asignaturasSet).sort();
+      setAsignaturasUnicas(asignaturas);
+      console.log('📚 Asignaturas encontradas:', asignaturas);
+
     } catch (err: any) {
       console.error("❌ Error al cargar asistencias:", err);
       const mensaje = err.message || "No se pudieron cargar las asistencias";
@@ -74,7 +85,8 @@ export function AsistenciasPage() {
       return;
     }
 
-    if (!window.confirm(`¿Eliminar asistencia de ${asistencia.estudiante}?`)) return;
+    const nombreEstudiante = nombresEstudiantes[asistencia.estudiante] || asistencia.estudiante;
+    if (!window.confirm(`¿Eliminar asistencia de ${nombreEstudiante}?`)) return;
 
     try {
       await asistenciaService.delete(id);
@@ -89,13 +101,38 @@ export function AsistenciasPage() {
     navigate(`/asistencias/editar/${id}`);
   };
 
-  // Aplicar todos los filtros
+  // Aplicar todos los filtros (incluyendo búsqueda por nombre de estudiante)
   const asistenciasFiltradas = asistencias.filter(a => {
+    // Filtro por asignatura
     if (filtroAsignatura && a.asignatura !== filtroAsignatura) return false;
+
+    // Filtro por estado
     if (filtroEstado && a.estadoAsistencia !== filtroEstado) return false;
-    if (busqueda && !a.estudiante.toLowerCase().includes(busqueda.toLowerCase())) return false;
+
+    // Búsqueda por nombre de estudiante (usando el nombre real, no la cédula)
+    if (busqueda) {
+      const nombreReal = nombresEstudiantes[a.estudiante] || '';
+      const cedulaStr = a.estudiante.toString();
+      const searchLower = busqueda.toLowerCase();
+
+      const coincideNombre = nombreReal.toLowerCase().includes(searchLower);
+      const coincideCedula = cedulaStr.toLowerCase().includes(searchLower);
+
+      if (!coincideNombre && !coincideCedula) return false;
+    }
+
     return true;
   });
+
+  // Función para obtener conteo de asignaturas
+  const getCountAsignatura = (asignatura: string) => {
+    return asistencias.filter(a => a.asignatura === asignatura).length;
+  };
+
+  // Función para obtener conteo de estados
+  const getCountEstado = (estado: string) => {
+    return asistencias.filter(a => a.estadoAsistencia === estado).length;
+  };
 
   if (loading) return <LoadingSpinner message="Cargando asistencias..." />;
 
@@ -168,11 +205,11 @@ export function AsistenciasPage() {
               fontWeight: '600',
               color: '#555'
             }}>
-              Buscar por nombre de estudiante:
+              Buscar por nombre o cédula de estudiante:
             </label>
             <input
               type="text"
-              placeholder="Escribe el nombre del estudiante..."
+              placeholder="Escribe el nombre o cédula del estudiante..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               style={{
@@ -184,9 +221,14 @@ export function AsistenciasPage() {
                 fontSize: '1rem'
               }}
             />
+            {busqueda && (
+              <p style={{ margin: '8px 0 0 0', color: '#999', fontSize: '0.9rem' }}>
+                Se encontraron {asistenciasFiltradas.length} resultado(s)
+              </p>
+            )}
           </div>
 
-          {/* Filtros por asignatura */}
+          {/* Filtros por asignatura - DINÁMICOS desde Firebase */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{
               display: 'block',
@@ -213,27 +255,33 @@ export function AsistenciasPage() {
                 Todas ({asistencias.length})
               </button>
 
-              {['Matemáticas', 'Física', 'Programación'].map(asignatura => {
-                const count = asistencias.filter(a => a.asignatura === asignatura).length;
-                return (
-                  <button
-                    key={asignatura}
-                    onClick={() => setFiltroAsignatura(asignatura)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      backgroundColor: filtroAsignatura === asignatura ? '#2196F3' : '#e0e0e0',
-                      color: filtroAsignatura === asignatura ? 'white' : '#666',
-                      fontWeight: filtroAsignatura === asignatura ? '600' : '400',
-                      transition: 'all 0.3s'
-                    }}
-                  >
-                    {asignatura} ({count})
-                  </button>
-                );
-              })}
+              {asignaturasUnicas.length > 0 ? (
+                asignaturasUnicas.map(asignatura => {
+                  const count = getCountAsignatura(asignatura);
+                  return (
+                    <button
+                      key={asignatura}
+                      onClick={() => setFiltroAsignatura(asignatura)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: filtroAsignatura === asignatura ? '#2196F3' : '#e0e0e0',
+                        color: filtroAsignatura === asignatura ? 'white' : '#666',
+                        fontWeight: filtroAsignatura === asignatura ? '600' : '400',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      {asignatura} ({count})
+                    </button>
+                  );
+                })
+              ) : (
+                <p style={{ color: '#999', fontStyle: 'italic' }}>
+                  No hay asignaturas disponibles
+                </p>
+              )}
             </div>
           </div>
 
@@ -261,11 +309,11 @@ export function AsistenciasPage() {
                   transition: 'all 0.3s'
                 }}
               >
-                Todos
+                Todos ({asistencias.length})
               </button>
 
               {['Presente', 'Ausente', 'Tiene Excusa'].map(estado => {
-                const count = asistencias.filter(a => a.estadoAsistencia === estado).length;
+                const count = getCountEstado(estado);
                 const icon = estado === 'Presente' ? '✅' : estado === 'Ausente' ? '❌' : '📝';
                 return (
                   <button

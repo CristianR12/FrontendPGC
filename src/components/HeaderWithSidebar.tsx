@@ -2,8 +2,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
-import { HomeIcon } from 'lucide-react';
+import { auth, db } from '../firebaseConfig';
+import { 
+  HomeIcon as HomeIconHero,
+  ClipboardIcon,
+  PlusIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon,
+  MoonIcon,
+  SunIcon,
+  Cog6ToothIcon,
+  ArrowRightEndOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon
+} from '@heroicons/react/24/solid';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 interface HeaderWithSidebarProps {
   children: React.ReactNode;
@@ -15,6 +28,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [nombrePersona, setNombrePersona] = useState<string>('Usuario');
   
   const user = auth.currentUser;
 
@@ -26,6 +40,36 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
       document.body.classList.add('dark-mode');
     }
   }, []);
+
+  // Cargar nombre de la base de datos
+  useEffect(() => {
+    const cargarNombre = async () => {
+      if (!user) return;
+
+      try {
+        const personsRef = collection(db, 'person');
+        const q = query(personsRef, where('profesorUID', '==', user.uid), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const data = querySnapshot.docs[0].data();
+          const nombre = data.namePerson || 'Usuario';
+          
+          // Extraer primer nombre y primer apellido
+          const partes = nombre.trim().split(' ');
+          const nombreFormato = partes.length >= 2 
+            ? `${partes[0]} ${partes[1]}`
+            : partes[0];
+          
+          setNombrePersona(nombreFormato);
+        }
+      } catch (error) {
+        console.error('Error al cargar nombre:', error);
+      }
+    };
+
+    cargarNombre();
+  }, [user]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -48,28 +92,27 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
     {
       category: 'Principal',
       items: [
-        { icon: <HomeIcon style={{ width: 24, height: 24, color: "#2196F3" }} />, label: 'Inicio', path: '/home' },
-        
+        { icon: <HomeIconHero style={{ width: 20, height: 20, color: "#2196F3" }} />, label: 'Inicio', path: '/home' },
       ]
     },
     {
       category: 'Gestión',
       items: [
-        { icon: '📋', label: 'Asistencias', path: '/asistencias' },
-        { icon: '➕', label: 'Nueva Asistencia', path: '/home', action: 'new' },
+        { icon: <ClipboardIcon style={{ width: 20, height: 20 }} />, label: 'Asistencias', path: '/asistencias' },
+        
       ]
     },
     {
       category: 'Reportes',
       items: [
-        { icon: '📄', label: 'Generar Reportes', path: '/reportes' },
+        { icon: <DocumentTextIcon style={{ width: 20, height: 20 }} />, label: 'Generar Reportes', path: '/reportes' },
       ]
     },
     {
       category: 'Estadísticas y Análisis',
       items: [
-        { icon: '📊', label: 'Estadísticas', path: '/estadisticas' },
-        { icon: '📈', label: 'Análisis', path: '/analisis' },
+        { icon: <ChartBarIcon style={{ width: 20, height: 20 }} />, label: 'Estadísticas', path: '/estadisticas' },
+        { icon: <ArrowTrendingUpIcon style={{ width: 20, height: 20 }} />, label: 'Análisis', path: '/analisis' },
       ]
     }
   ];
@@ -99,28 +142,34 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             style={{
-              width: '45px',
-              height: '45px',
-              borderRadius: '10px',
+              width: '24px',
+              height: '24px',
               border: 'none',
-              background: darkMode ? '#2d2d2d' : '#f5f5f5',
+              background: 'transparent',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.3s',
-              fontSize: '1.5rem'
+              padding: 0,
+              color: darkMode ? '#fff' : '#333'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#e0e0e0';
-              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.transform = 'scale(1.2)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = darkMode ? '#2d2d2d' : '#f5f5f5';
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            {sidebarOpen ? '✕' : '☰'}
+            {sidebarOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
           </button>
 
           <h1 style={{ 
@@ -134,34 +183,32 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
         </div>
 
         {/* Controles Derecha */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           {/* Modo Oscuro/Claro */}
           <button
             onClick={toggleDarkMode}
             title={darkMode ? 'Modo Claro' : 'Modo Oscuro'}
             style={{
-              width: '45px',
-              height: '45px',
-              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
               border: 'none',
-              background: darkMode ? '#2d2d2d' : '#f5f5f5',
+              background: 'transparent',
               cursor: 'pointer',
-              fontSize: '1.3rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.3s'
+              transition: 'all 0.3s',
+              padding: 0,
+              color: darkMode ? '#FFD700' : '#4a5568'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1) rotate(20deg)';
-              e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#e0e0e0';
+              e.currentTarget.style.transform = 'scale(1.2) rotate(20deg)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-              e.currentTarget.style.background = darkMode ? '#2d2d2d' : '#f5f5f5';
             }}
           >
-            {darkMode ? '☀️' : '🌙'}
+            {darkMode ? <SunIcon /> : <MoonIcon />}
           </button>
 
           {/* Configuraciones */}
@@ -170,28 +217,26 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
               onClick={() => setShowSettings(!showSettings)}
               title="Configuraciones"
               style={{
-                width: '45px',
-                height: '45px',
-                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
                 border: 'none',
-                background: darkMode ? '#2d2d2d' : '#f5f5f5',
+                background: 'transparent',
                 cursor: 'pointer',
-                fontSize: '1.3rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                padding: 0,
+                color: darkMode ? '#fff' : '#333'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)';
-                e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#e0e0e0';
+                e.currentTarget.style.transform = 'scale(1.2) rotate(90deg)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-                e.currentTarget.style.background = darkMode ? '#2d2d2d' : '#f5f5f5';
               }}
             >
-              ⚙️
+              <Cog6ToothIcon />
             </button>
 
             {/* Menú Configuraciones */}
@@ -213,7 +258,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
                   cursor: 'pointer',
                   borderRadius: '6px',
                   transition: 'background 0.2s',
-                  color: darkMode ? '#fff' : '#333'
+                  color: darkMode ? '#fff' : '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#f5f5f5'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -225,7 +273,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
                   cursor: 'pointer',
                   borderRadius: '6px',
                   transition: 'background 0.2s',
-                  color: darkMode ? '#fff' : '#333'
+                  color: darkMode ? '#fff' : '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#f5f5f5'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -237,7 +288,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
                   cursor: 'pointer',
                   borderRadius: '6px',
                   transition: 'background 0.2s',
-                  color: darkMode ? '#fff' : '#333'
+                  color: darkMode ? '#fff' : '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = darkMode ? '#3d3d3d' : '#f5f5f5'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -253,32 +307,32 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
             onClick={handleLogout}
             title="Cerrar Sesión"
             style={{
-              width: '45px',
-              height: '45px',
-              borderRadius: '50%',
+              width: 'auto',
+              height: 'auto',
               border: 'none',
-              background: '#f44336',
-              color: 'white',
+              background: 'transparent',
               cursor: 'pointer',
-              fontSize: '1.3rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.3s',
-              boxShadow: '0 2px 8px rgba(244, 67, 54, 0.3)'
+              padding: 0,
+              gap: '8px',
+              color: '#f44336',
+              fontSize: '0.95rem',
+              fontWeight: '500'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.1) rotate(10deg)';
-              e.currentTarget.style.background = '#d32f2f';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(244, 67, 54, 0.5)';
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.color = '#d32f2f';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-              e.currentTarget.style.background = '#f44336';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(244, 67, 54, 0.3)';
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.color = '#f44336';
             }}
           >
-            🚪
+            Cerrar sesión
+            <ArrowRightStartOnRectangleIcon style={{ width: '20px', height: '20px' }} />
           </button>
         </div>
       </div>
@@ -335,9 +389,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
             fontSize: '1.8rem',
             color: 'white',
             fontWeight: 'bold',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+            boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+            position: 'relative'
           }}>
-            {!user?.photoURL && (user?.displayName?.[0] || user?.email?.[0] || '👤')}
+            {!user?.photoURL && (nombrePersona?.[0] || user?.email?.[0] || '👤')}
           </div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ 
@@ -348,7 +403,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {user?.displayName || 'Usuario'}
+              {nombrePersona}
             </div>
             <div style={{ 
               fontSize: '0.85rem',
@@ -415,7 +470,9 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
                     }
                   }}
                 >
-                  <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>{item.icon}</span>
+                  <span style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center' }}>
+                    {item.icon}
+                  </span>
                   <span style={{ display: 'flex', alignItems: 'center' }}>{item.label}</span>
                 </div>
               ))}
@@ -451,8 +508,6 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-
-        
 
         body.dark-mode::before {
           background: rgba(0, 0, 0, 0.8) !important;

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Asistencia } from "../services/asistenciaService";
 
 interface AsistenciaTableProps {
@@ -193,47 +194,53 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                       onClick={() => onEdit(a.id)}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: isDarkMode ? "#3d3d3d" : "#62626196",
+                        backgroundColor: isDarkMode ? "#667eea" : "#667eea",
                         color: "white",
                         border: "none",
                         borderRadius: "6px",
                         cursor: "pointer",
                         transition: "all 0.3s",
-                        fontSize: "0.9rem"
+                        fontSize: "0.9rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? "#4d4d4d" : "#525252";
+                        e.currentTarget.style.backgroundColor = isDarkMode ? "#667eea" : "#667eea";
                         e.currentTarget.style.transform = "scale(1.05)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? "#3d3d3d" : "#62626196";
+                        e.currentTarget.style.backgroundColor = isDarkMode ? "#7389eeff" : "#7389eeff";
                         e.currentTarget.style.transform = "scale(1)";
                       }}
                     >
-                      ✏️ Editar
+                      <Edit2 size={16} /> Editar
                     </button>
                     <button
                       onClick={() => onDelete(a.id)}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: "#f44336",
+                        backgroundColor: "#555",
                         color: "white",
                         border: "none",
                         borderRadius: "6px",
                         cursor: "pointer",
                         transition: "all 0.3s",
-                        fontSize: "0.9rem"
+                        fontSize: "0.9rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#d32f2f";
+                        e.currentTarget.style.backgroundColor = "#555";
                         e.currentTarget.style.transform = "scale(1.05)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#f44336";
+                        e.currentTarget.style.backgroundColor = "#818181ff";
                         e.currentTarget.style.transform = "scale(1)";
                       }}
                     >
-                      🗑️ Eliminar
+                      <Trash2 size={16} /> Eliminar
                     </button>
                   </td>
                 </tr>
@@ -277,16 +284,19 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
               padding: '8px 12px',
               backgroundColor: paginaActual === 1
                 ? (isDarkMode ? '#555' : '#ccc')
-                : '#2196F3',
+                : '#333',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: paginaActual === 1 ? 'not-allowed' : 'pointer',
               opacity: paginaActual === 1 ? 0.6 : 1,
-              fontSize: '0.85rem'
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
           >
-            ← Anterior
+            <ChevronLeft size={16} /> Anterior
           </button>
 
           {/* Primera página */}
@@ -317,7 +327,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
               onClick={() => setPaginaActual(pagina)}
               style={{
                 padding: '6px 10px',
-                backgroundColor: paginaActual === pagina ? '#2196F3' : (isDarkMode ? '#3d3d3d' : '#e0e0e0'),
+                backgroundColor: paginaActual === pagina ? '#333' : (isDarkMode ? '#3d3d3d' : '#e0e0e0'),
                 color: paginaActual === pagina ? 'white' : (isDarkMode ? '#fff' : '#333'),
                 border: 'none',
                 borderRadius: '4px',
@@ -360,16 +370,19 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
               padding: '8px 12px',
               backgroundColor: paginaActual === totalPaginas
                 ? (isDarkMode ? '#555' : '#ccc')
-                : '#2196F3',
+                : '#333',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: paginaActual === totalPaginas ? 'not-allowed' : 'pointer',
               opacity: paginaActual === totalPaginas ? 0.6 : 1,
-              fontSize: '0.85rem'
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
           >
-            Siguiente →
+            Siguiente <ChevronRight size={16} />
           </button>
         </div>
       )}

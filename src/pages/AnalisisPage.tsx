@@ -8,6 +8,14 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Toast } from '../components/Toast';
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
+import {
+  ChartBarIcon,
+  CalendarIcon,
+  AcademicCapIcon,
+  TrophyIcon,
+  HomeIcon,
+  ArrowPathIcon
+} from '@heroicons/react/24/solid';
 
 export function AnalisisPage() {
   const navigate = useNavigate();
@@ -225,7 +233,10 @@ export function AnalisisPage() {
       <Header title="Análisis Avanzado" showLogout={true} onLogout={handleLogout} />
 
       <div style={{ padding: '30px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ marginBottom: '25px', color: '#2b7a78' }}>📈 Análisis Avanzado de Asistencias</h2>
+        <h2 style={{ marginBottom: '25px', color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <ChartBarIcon style={{ width: '32px', height: '32px' }} />
+          Análisis Avanzado de Asistencias
+        </h2>
 
         {/* Filtros */}
         <div style={{
@@ -240,8 +251,9 @@ export function AnalisisPage() {
           border: isDarkMode ? '1px solid #3d3d3d' : 'none'
         }}>
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: isDarkMode ? '#fff' : '#333' }}>
-              📅 Filtrar por Fecha
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', marginBottom: '8px', color: isDarkMode ? '#fff' : '#333' }}>
+              <CalendarIcon style={{ width: '18px', height: '18px' }} />
+              Filtrar por Fecha
             </label>
             <input
               type="date"
@@ -261,8 +273,9 @@ export function AnalisisPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px', color: isDarkMode ? '#fff' : '#333' }}>
-              📚 Filtrar por Curso
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', marginBottom: '8px', color: isDarkMode ? '#fff' : '#333' }}>
+              <AcademicCapIcon style={{ width: '18px', height: '18px' }} />
+              Filtrar por Curso
             </label>
             <select
               value={filtroCurso}
@@ -285,7 +298,10 @@ export function AnalisisPage() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: 'transparent', userSelect: 'none' }}>
+              -
+            </label>
             <button
               onClick={() => {
                 setFiltroFecha('');
@@ -300,7 +316,11 @@ export function AnalisisPage() {
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontWeight: '600',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}
               onMouseEnter={(e) => {
                 (e.target as HTMLButtonElement).style.background = '#1f5954';
@@ -309,6 +329,7 @@ export function AnalisisPage() {
                 (e.target as HTMLButtonElement).style.background = '#2b7a78';
               }}
             >
+              <ArrowPathIcon style={{ width: '18px', height: '23px' }} />
               Limpiar Filtros
             </button>
           </div>
@@ -376,7 +397,10 @@ export function AnalisisPage() {
           border: isDarkMode ? '1px solid #3d3d3d' : 'none',
           overflowX: 'auto'
         }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78' }}>📊 Tendencia de Asistencia</h3>
+          <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ChartBarIcon style={{ width: '24px', height: '24px' }} />
+            Tendencia de Asistencia
+          </h3>
           
           <div style={{ display: 'flex', gap: '10px', minWidth: '100%' }}>
             {tendenciaAsistencia.map((item, idx) => (
@@ -426,7 +450,10 @@ export function AnalisisPage() {
             marginBottom: '30px',
             border: isDarkMode ? '1px solid #3d3d3d' : 'none'
           }}>
-            <h3 style={{ marginTop: 0, color: '#2b7a78' }}>📅 Análisis por Día de Semana</h3>
+            <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <CalendarIcon style={{ width: '24px', height: '24px' }} />
+              Análisis por Día de Semana
+            </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
               {analisisPorDiaSemana.map((item, idx) => (
@@ -468,7 +495,10 @@ export function AnalisisPage() {
           border: isDarkMode ? '1px solid #3d3d3d' : 'none',
           overflowX: 'auto'
         }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78' }}>🏆 Top 10 Estudiantes</h3>
+          <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <TrophyIcon style={{ width: '24px', height: '24px' }} />
+            Top 10 Estudiantes
+          </h3>
           
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -523,7 +553,10 @@ export function AnalisisPage() {
           marginBottom: '30px',
           border: isDarkMode ? '1px solid #3d3d3d' : 'none'
         }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78' }}>📊 Desempeño por Curso</h3>
+          <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ChartBarIcon style={{ width: '24px', height: '24px' }} />
+            Desempeño por Curso
+          </h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             {estadisticasPorCurso.map((curso, idx) => (
@@ -608,21 +641,25 @@ export function AnalisisPage() {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              transition: 'all 0.3s'
+              transition: 'all 0.3s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
             onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#1f5954';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#2b7a78';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
-            }}
-          >
-            🏠 Regresar al Inicio
-          </button>
+                (e.target as HTMLButtonElement).style.backgroundColor = '#1f5954';
+                (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor = '#2b7a78';
+                (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
+              }}
+            >
+              <HomeIcon style={{ width: '20px', height: '20px' }} />
+              Regresar al Inicio
+            </button>
+          </div>
         </div>
-      </div>
-    </>
-  );
-}
+      </>
+    );
+  }

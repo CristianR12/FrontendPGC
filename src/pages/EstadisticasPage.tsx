@@ -8,6 +8,15 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Toast } from '../components/Toast';
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
+import {
+  ChartBarIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DocumentCheckIcon,
+  AcademicCapIcon,
+  ExclamationTriangleIcon,
+  HomeIcon
+} from '@heroicons/react/24/solid';
 
 export function EstadisticasPage() {
   const navigate = useNavigate();
@@ -158,7 +167,10 @@ export function EstadisticasPage() {
       <Header title="Estadísticas de Asistencias" showLogout={true} onLogout={handleLogout} />
 
       <div style={{ padding: '30px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ marginBottom: '30px', color: '#2b7a78' }}>📊 Panel de Estadísticas</h2>
+        <h2 style={{ marginBottom: '30px', color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <ChartBarIcon style={{ width: '32px', height: '32px' }} />
+          Panel de Estadísticas
+        </h2>
 
         {/* KPIs Principales */}
         <div style={{
@@ -293,7 +305,10 @@ export function EstadisticasPage() {
           border: isDarkMode ? '1px solid #3d3d3d' : 'none',
           overflowX: 'auto'
         }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78' }}>📚 Asistencia por Curso</h3>
+          <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AcademicCapIcon style={{ width: '24px', height: '24px' }} />
+            Asistencia por Curso
+          </h3>
           
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -346,7 +361,10 @@ export function EstadisticasPage() {
             border: isDarkMode ? '2px solid #f5576c' : '2px solid #f5576c',
             marginBottom: '30px'
           }}>
-            <h3 style={{ marginTop: 0, color: '#c62828' }}>⚠️ Estudiantes con Baja Asistencia (&lt;80%)</h3>
+            <h3 style={{ marginTop: 0, color: '#c62828', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <ExclamationTriangleIcon style={{ width: '24px', height: '24px' }} />
+              Estudiantes con Baja Asistencia (&lt;80%)
+            </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
               {estudiantesBajaAsistencia.map((estudiante, idx) => (
@@ -396,7 +414,10 @@ export function EstadisticasPage() {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              transition: 'all 0.3s'
+              transition: 'all 0.3s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
             onMouseEnter={(e) => {
               (e.target as HTMLButtonElement).style.backgroundColor = '#1f5954';
@@ -407,7 +428,8 @@ export function EstadisticasPage() {
               (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
             }}
           >
-            🏠 Regresar al Inicio
+            <HomeIcon style={{ width: '20px', height: '20px' }} />
+            Regresar al Inicio
           </button>
         </div>
       </div>

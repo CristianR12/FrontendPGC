@@ -7,6 +7,16 @@ import { AsistenciaTable } from '../components/AsistenciaTable';
 import { Toast } from '../components/Toast';
 import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
+import {
+  ChartBarIcon,
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  TrashIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DocumentCheckIcon,
+  SparklesIcon
+} from '@heroicons/react/24/solid';
 
 export function AsistenciasPage() {
   const navigate = useNavigate();
@@ -158,8 +168,9 @@ export function AsistenciasPage() {
           gap: '15px'
         }}>
           <div>
-            <h2 style={{ margin: 0, color: '#2b7a78' }}>
-              📊 Gestión Avanzada de Asistencias
+            <h2 style={{ margin: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <ChartBarIcon style={{ width: 28, height: 28 }} />
+              Gestión Avanzada de Asistencias
             </h2>
             <p style={{ margin: '5px 0 0 0', color: '#666' }}>
               Mostrando {asistenciasFiltradas.length} de {asistencias.length} registros
@@ -172,15 +183,19 @@ export function AsistenciasPage() {
               disabled={loading}
               style={{
                 padding: '10px 20px',
-                backgroundColor: '#2196F3',
+                backgroundColor: '#585858ff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.6 : 1
+                opacity: loading ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              🔄 Actualizar
+              <ArrowPathIcon style={{ width: 18, height: 18 }} />
+              Actualizar
             </button>
           </div>
         </div>
@@ -193,8 +208,9 @@ export function AsistenciasPage() {
           marginBottom: '25px',
           boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
         }}>
-          <h3 style={{ marginBottom: '20px', color: '#2b7a78' }}>
-            🔍 Filtros y Búsqueda
+          <h3 style={{ marginBottom: '20px', color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <MagnifyingGlassIcon style={{ width: 24, height: 24 }} />
+            Filtros y Búsqueda
           </h3>
 
           {/* Barra de búsqueda */}
@@ -246,7 +262,7 @@ export function AsistenciasPage() {
                   borderRadius: '20px',
                   border: 'none',
                   cursor: 'pointer',
-                  backgroundColor: filtroAsignatura === null ? '#2196F3' : '#e0e0e0',
+                  backgroundColor: filtroAsignatura === null ? '#667eea' : '#e0e0e0',
                   color: filtroAsignatura === null ? 'white' : '#666',
                   fontWeight: filtroAsignatura === null ? '600' : '400',
                   transition: 'all 0.3s'
@@ -314,7 +330,7 @@ export function AsistenciasPage() {
 
               {['Presente', 'Ausente', 'Tiene Excusa'].map(estado => {
                 const count = getCountEstado(estado);
-                const icon = estado === 'Presente' ? '✅' : estado === 'Ausente' ? '❌' : '📝';
+                const Icon = estado === 'Presente' ? CheckCircleIcon : estado === 'Ausente' ? XCircleIcon : DocumentCheckIcon;
                 return (
                   <button
                     key={estado}
@@ -327,10 +343,14 @@ export function AsistenciasPage() {
                       backgroundColor: filtroEstado === estado ? '#4CAF50' : '#e0e0e0',
                       color: filtroEstado === estado ? 'white' : '#666',
                       fontWeight: filtroEstado === estado ? '600' : '400',
-                      transition: 'all 0.3s'
+                      transition: 'all 0.3s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    {icon} {estado} ({count})
+                    <Icon style={{ width: 18, height: 18 }} />
+                    {estado} ({count})
                   </button>
                 );
               })}
@@ -353,10 +373,15 @@ export function AsistenciasPage() {
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  margin: '0 auto'
                 }}
               >
-                🗑️ Limpiar todos los filtros
+                <TrashIcon style={{ width: 18, height: 18 }} />
+                Limpiar todos los filtros
               </button>
             </div>
           )}
@@ -373,7 +398,9 @@ export function AsistenciasPage() {
             textAlign: 'center',
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🔍</div>
+            <div style={{ fontSize: '4rem', marginBottom: '20px' }}>
+              <MagnifyingGlassIcon style={{ width: 80, height: 80, margin: '0 auto', color: '#999' }} />
+            </div>
             <h3 style={{ color: '#666', marginBottom: '10px' }}>
               No se encontraron resultados
             </h3>
@@ -432,7 +459,9 @@ export function AsistenciasPage() {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '5px' }}>📊</div>
+              <div style={{ marginBottom: '5px' }}>
+                <SparklesIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#2196F3' }} />
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2196F3' }}>
                 {asistenciasFiltradas.length}
               </div>
@@ -446,7 +475,9 @@ export function AsistenciasPage() {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '5px' }}>✅</div>
+              <div style={{ marginBottom: '5px' }}>
+                <CheckCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#4CAF50' }} />
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
                 {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Presente').length}
               </div>
@@ -460,7 +491,9 @@ export function AsistenciasPage() {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '5px' }}>❌</div>
+              <div style={{ marginBottom: '5px' }}>
+                <XCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#f44336' }} />
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f44336' }}>
                 {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Ausente').length}
               </div>
@@ -474,7 +507,9 @@ export function AsistenciasPage() {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '5px' }}>📝</div>
+              <div style={{ marginBottom: '5px' }}>
+                <DocumentCheckIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#FF9800' }} />
+              </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FF9800' }}>
                 {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Tiene Excusa').length}
               </div>

@@ -3,6 +3,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { 
+  Plus, 
+  RefreshCw, 
+  BarChart3, 
+  CheckCircle, 
+  XCircle, 
+  FileText,
+  TrendingUp,
+  Clipboard,
+  ListChecks,
+  CheckCircle2,
+  AlertCircle,
+  PenTool,
+  AreaChart
+} from 'lucide-react';
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { DashboardCard } from "../components/DashboardCard";
@@ -38,6 +53,7 @@ export function HomePage() {
   const [loadingUserType, setLoadingUserType] = useState(true);
   const [cursos, setCursos] = useState<Course[]>([]);
   const [loadingHorario, setLoadingHorario] = useState(true);
+  const [nombrePersona, setNombrePersona] = useState<string>('');
 
   // Array de asignaturas únicas extraídas de las asistencias
   const [asignaturasDisponibles, setAsignaturasDisponibles] = useState<string[]>([]);
@@ -85,6 +101,7 @@ export function HomePage() {
           const personDoc = querySnapshot.docs[0];
           const data = personDoc.data();
           setUserType(data.type);
+          setNombrePersona(data.namePerson || 'Usuario');
 
           console.log('✅ Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
 
@@ -282,7 +299,7 @@ export function HomePage() {
 
       <div style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
 
-        {/* Sección de bienvenida */}
+        {/* Sección de bienvenida - CENTRADA SIN BOTONES */}
         <div style={{
           background: isDarkMode
             ? "linear-gradient(135deg, #2d2d2d 0%, #1e1e1e 100%)"
@@ -294,89 +311,25 @@ export function HomePage() {
           boxShadow: isDarkMode
             ? "0 4px 15px rgba(0,0,0,0.5)"
             : "0 4px 15px rgba(0,0,0,0.2)",
-          border: isDarkMode ? "1px solid #3d3d3d" : "none"
+          border: isDarkMode ? "1px solid #3d3d3d" : "none",
+          textAlign: 'center'
         }}>
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            flexDirection: 'column',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '15px'
+            justifyContent: 'center',
+            gap: '10px'
           }}>
-            <div>
-              <h2 style={{
-                marginBottom: "10px",
-                fontSize: "2rem",
-              }}>
-                👋 Bienvenido, {auth.currentUser?.displayName || auth.currentUser?.email}
-              </h2>
-              <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: 0 }}>
-                Sistema de Control de Asistencias {userType && `• ${userType}`}
-              </p>
-            </div>
-
-            {/* Botones de navegación rápida */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => navigate('/horario-completo')}
-                style={{
-                  padding: '12px 24px',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s',
-                  backdropFilter: 'blur(10px)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                📅 Ver Horario Completo
-              </button>
-
-              {userType === 'Profesor' && (
-                <button
-                  onClick={() => navigate('/gestion-horarios')}
-                  style={{
-                    padding: '12px 24px',
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s',
-                    backdropFilter: 'blur(10px)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  ⚙️ Gestionar Horarios
-                </button>
-              )}
-            </div>
+            <h2 style={{
+              marginBottom: "0px",
+              fontSize: "2rem",
+            }}>
+              👋 Bienvenido, {nombrePersona}
+            </h2>
+            <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: 0 }}>
+              Sistema de Control de Asistencias {userType && `• ${userType}`}
+            </p>
           </div>
         </div>
 
@@ -397,40 +350,135 @@ export function HomePage() {
           gap: "20px",
           marginBottom: "40px"
         }}>
-          <DashboardCard
-            title="Total de Registros"
-            value={stats.totalAsistencias}
-            icon="📋"
-            color="#4CAF50"
-          />
+          {/* Total de Registros */}
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "25px",
+            borderRadius: "12px",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            transition: "transform 0.3s",
+            cursor: "pointer"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Total de Registros</p>
+              <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#4CAF50" }}>{stats.totalAsistencias}</p>
+            </div>
+            <ListChecks size={40} color="#4CAF50" strokeWidth={1.5} />
+          </div>
 
-          <DashboardCard
-            title="Presentes"
-            value={stats.presentes}
-            icon="✅"
-            color="#2196F3"
-          />
+          {/* Presentes */}
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "25px",
+            borderRadius: "12px",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            transition: "transform 0.3s",
+            cursor: "pointer"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Presentes</p>
+              <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#2196F3" }}>{stats.presentes}</p>
+            </div>
+            <CheckCircle2 size={40} color="#2196F3" strokeWidth={1.5} />
+          </div>
 
-          <DashboardCard
-            title="Ausentes"
-            value={stats.ausentes}
-            icon="❌"
-            color="#f44336"
-          />
+          {/* Ausentes */}
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "25px",
+            borderRadius: "12px",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            transition: "transform 0.3s",
+            cursor: "pointer"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Ausentes</p>
+              <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#f44336" }}>{stats.ausentes}</p>
+            </div>
+            <AlertCircle size={40} color="#f44336" strokeWidth={1.5} />
+          </div>
 
-          <DashboardCard
-            title="Con Excusa"
-            value={stats.conExcusa}
-            icon="📝"
-            color="#FF9800"
-          />
+          {/* Con Excusa */}
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "25px",
+            borderRadius: "12px",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            transition: "transform 0.3s",
+            cursor: "pointer"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Con Excusa</p>
+              <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#c178ce" }}>{stats.conExcusa}</p>
+            </div>
+            <PenTool size={40} color="#c178ce" strokeWidth={1.5} />
+          </div>
 
-          <DashboardCard
-            title="Tasa de Asistencia"
-            value={`${stats.tasaAsistencia}%` as unknown as number}
-            icon="📈"
-            color="#9C27B0"
-          />
+          {/* Tasa de Asistencia */}
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "25px",
+            borderRadius: "12px",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            transition: "transform 0.3s",
+            cursor: "pointer"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-5px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}>
+            <div>
+              <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Tasa de Asistencia</p>
+              <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#9C27B0" }}>{stats.tasaAsistencia}%</p>
+            </div>
+            <AreaChart size={40} color="#9C27B0" strokeWidth={1.5} />
+          </div>
         </div>
 
         {/* Acciones Rápidas */}
@@ -442,27 +490,12 @@ export function HomePage() {
           flexWrap: "wrap",
           gap: "15px"
         }}>
-          <h2 style={{ margin: 0, color: isDarkMode ? "#fff" : "#2b7a78" }}>
-            📚 Gestión de Asistencias ({asistenciasFiltradas.length})
+          <h2 style={{ margin: 0, color: isDarkMode ? "#fff" : "#2b7a78", display: "flex", alignItems: "center", gap: "10px" }}>
+            <Clipboard size={24} /> Gestión de Asistencias ({asistenciasFiltradas.length})
           </h2>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              onClick={() => setShowNuevoForm(!showNuevoForm)}
-              style={{
-                padding: "12px 24px",
-                fontSize: "1rem",
-                backgroundColor: showNuevoForm ? "#9e9e9e" : "#4CAF50",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                transition: "all 0.3s",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-              }}
-            >
-              {showNuevoForm ? "❌ Cancelar" : "➕ Nueva Asistencia"}
-            </button>
+            
 
             <button
               onClick={() => navigate("/reportes")}
@@ -475,10 +508,13 @@ export function HomePage() {
                 borderRadius: "8px",
                 cursor: "pointer",
                 transition: "all 0.3s",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
               }}
             >
-              📄 Generar Reportes
+              <BarChart3 size={20} /> Generar Reportes
             </button>
 
             <button
@@ -487,17 +523,20 @@ export function HomePage() {
               style={{
                 padding: "12px 24px",
                 fontSize: "1rem",
-                backgroundColor: "#FF9800",
+                backgroundColor: "#c178ce",
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
                 cursor: loading ? "not-allowed" : "pointer",
                 opacity: loading ? 0.6 : 1,
                 transition: "all 0.3s",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
               }}
             >
-              🔄 Actualizar
+              <RefreshCw size={20} /> Actualizar
             </button>
           </div>
         </div>
@@ -513,8 +552,8 @@ export function HomePage() {
             animation: "slideDown 0.3s ease-out",
             border: isDarkMode ? "1px solid #3d3d3d" : "none"
           }}>
-            <h3 style={{ marginBottom: "20px", color: isDarkMode ? "#fff" : "#2b7a78" }}>
-              ➕ Registrar Nueva Asistencia
+            <h3 style={{ marginBottom: "20px", color: isDarkMode ? "#fff" : "#2b7a78", display: "flex", alignItems: "center", gap: "10px" }}>
+              <Plus size={22} /> Registrar Nueva Asistencia
             </h3>
 
             <form onSubmit={handleCrearAsistencia}>
@@ -639,10 +678,13 @@ export function HomePage() {
                     border: "none",
                     borderRadius: "6px",
                     cursor: saving ? "not-allowed" : "pointer",
-                    opacity: saving ? 0.6 : 1
+                    opacity: saving ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
                   }}
                 >
-                  Cancelar
+                  <XCircle size={18} /> Cancelar
                 </button>
 
                 <button
@@ -656,10 +698,13 @@ export function HomePage() {
                     borderRadius: "6px",
                     cursor: saving ? "not-allowed" : "pointer",
                     opacity: saving ? 0.6 : 1,
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
                   }}
                 >
-                  {saving ? "Guardando..." : "💾 Guardar Asistencia"}
+                  <CheckCircle size={18} /> {saving ? "Guardando..." : "Guardar Asistencia"}
                 </button>
               </div>
             </form>

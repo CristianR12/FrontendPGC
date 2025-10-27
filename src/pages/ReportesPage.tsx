@@ -11,6 +11,24 @@ import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
+import {
+  ChartBarIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DocumentCheckIcon,
+  UserGroupIcon,
+  AcademicCapIcon,
+  DocumentArrowDownIcon,
+  CalendarIcon,
+  MagnifyingGlassIcon,
+  HomeIcon,
+  ClipboardDocumentIcon,
+  XMarkIcon,
+  CheckIcon,
+  DocumentTextIcon,
+  TableCellsIcon,
+  ArrowDownTrayIcon
+} from '@heroicons/react/24/solid';
 
 export function ReportesPage() {
   const navigate = useNavigate();
@@ -496,8 +514,9 @@ export function ReportesPage() {
       <Header title="Generación de Reportes" showLogout={true} onLogout={handleLogout} />
 
       <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-        <h2 style={{ marginBottom: '30px', textAlign: 'center', color: '#2b7a78' }}>
-          📊 Exportar Asistencias
+        <h2 style={{ marginBottom: '30px', textAlign: 'center', color: '#2b7a78', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          <ChartBarIcon style={{ width: 32, height: 32 }} />
+          Exportar Asistencias
         </h2>
 
         {/* Estadísticas */}
@@ -514,7 +533,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📋</div>
+            <div style={{ marginBottom: '10px' }}>
+              <DocumentArrowDownIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#2196F3' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#2196F3' }}>
               {estadisticas.total}
             </div>
@@ -528,7 +549,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✅</div>
+            <div style={{ marginBottom: '10px' }}>
+              <CheckCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#4CAF50' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#4CAF50' }}>
               {estadisticas.presentes}
             </div>
@@ -542,7 +565,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>❌</div>
+            <div style={{ marginBottom: '10px' }}>
+              <XCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#f44336' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f44336' }}>
               {estadisticas.ausentes}
             </div>
@@ -556,7 +581,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📝</div>
+            <div style={{ marginBottom: '10px' }}>
+              <DocumentCheckIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#FF9800' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#FF9800' }}>
               {estadisticas.conExcusa}
             </div>
@@ -570,7 +597,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>👥</div>
+            <div style={{ marginBottom: '10px' }}>
+              <UserGroupIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#9C27B0' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#9C27B0' }}>
               {estadisticas.estudiantes}
             </div>
@@ -584,7 +613,9 @@ export function ReportesPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📚</div>
+            <div style={{ marginBottom: '10px' }}>
+              <AcademicCapIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#00BCD4' }} />
+            </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#00BCD4' }}>
               {estadisticas.asignaturas}
             </div>
@@ -639,7 +670,7 @@ export function ReportesPage() {
                 (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
               }}
             >
-              <span style={{ fontSize: '1.5rem' }}>📊</span>
+              <TableCellsIcon style={{ width: 24, height: 24 }} />
               Exportar a CSV (Valores Separados por Comas)
             </button>
 
@@ -673,7 +704,7 @@ export function ReportesPage() {
                 (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
               }}
             >
-              <span style={{ fontSize: '1.5rem' }}>📄</span>
+              <DocumentTextIcon style={{ width: 24, height: 24 }} />
               Exportar a PDF (Documento Portable)
             </button>
 
@@ -698,16 +729,16 @@ export function ReportesPage() {
               }}
               onMouseEnter={(e) => {
                 if (!(generando || asistencias.length === 0)) {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#0b7dda';
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#3f3f40';
                   (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
                 }
               }}
               onMouseLeave={(e) => {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#2196F3';
+                (e.target as HTMLButtonElement).style.backgroundColor = '#3f3f40';
                 (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
               }}
             >
-              <span style={{ fontSize: '1.5rem' }}>📗</span>
+              <TableCellsIcon style={{ width: 24, height: 24 }} />
               Exportar a Excel (Hoja de Cálculo)
             </button>
           </div>
@@ -730,7 +761,10 @@ export function ReportesPage() {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              transition: 'all 0.3s'
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
             onMouseEnter={(e) => {
               (e.target as HTMLButtonElement).style.backgroundColor = '#757575';
@@ -739,7 +773,8 @@ export function ReportesPage() {
               (e.target as HTMLButtonElement).style.backgroundColor = '#9e9e9e';
             }}
           >
-            🏠 Dashboard
+            <HomeIcon style={{ width: 18, height: 18 }} />
+            Home
           </button>
           <button
             onClick={() => navigate('/asistencias')}
@@ -751,16 +786,20 @@ export function ReportesPage() {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              transition: 'all 0.3s'
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
             onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#0b7dda';
+              (e.target as HTMLButtonElement).style.backgroundColor = '#667eea';
             }}
             onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#2196F3';
+              (e.target as HTMLButtonElement).style.backgroundColor = '#667eea';
             }}
           >
-            📋 Ver Asistencias
+            <ClipboardDocumentIcon style={{ width: 18, height: 18 }} />
+            Ver Asistencias
           </button>
         </div>
       </div>
@@ -787,19 +826,23 @@ export function ReportesPage() {
             width: '90%',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{ color: '#2b7a78', marginBottom: '25px', textAlign: 'center' }}>
-              🔍 Filtrar Reporte
+            <h2 style={{ color: '#2b7a78', marginBottom: '25px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <MagnifyingGlassIcon style={{ width: 24, height: 24 }} />
+              Filtrar Reporte
             </h2>
 
             {/* Selector de Fecha */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{
-                display: 'block',
+                display: 'flex',
                 marginBottom: '8px',
                 fontWeight: '600',
-                color: '#555'
+                color: '#555',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                📅 Fecha (Opcional):
+                <CalendarIcon style={{ width: 18, height: 18 }} />
+                Fecha (Opcional):
               </label>
               <input
                 type="date"
@@ -819,12 +862,15 @@ export function ReportesPage() {
             {/* Selector de Curso */}
             <div style={{ marginBottom: '25px' }}>
               <label style={{
-                display: 'block',
+                display: 'flex',
                 marginBottom: '8px',
                 fontWeight: '600',
-                color: '#555'
+                color: '#555',
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                📚 Curso/Asignatura (Opcional):
+                <AcademicCapIcon style={{ width: 18, height: 18 }} />
+                Curso/Asignatura (Opcional):
               </label>
               <select
                 value={filtroCurso}
@@ -859,8 +905,8 @@ export function ReportesPage() {
                 color: '#0066cc'
               }}>
                 <strong>Filtros aplicados:</strong>
-                <div>{filtroFecha ? `📅 Fecha: ${filtroFecha}` : ''}</div>
-                <div>{filtroCurso ? `📚 Curso: ${filtroCurso}` : ''}</div>
+                <div>{filtroFecha ? `Fecha: ${filtroFecha}` : ''}</div>
+                <div>{filtroCurso ? `Curso: ${filtroCurso}` : ''}</div>
               </div>
             )}
 
@@ -880,7 +926,10 @@ export function ReportesPage() {
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  transition: 'all 0.3s'
+                  transition: 'all 0.3s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
                   (e.target as HTMLButtonElement).style.backgroundColor = '#757575';
@@ -889,7 +938,8 @@ export function ReportesPage() {
                   (e.target as HTMLButtonElement).style.backgroundColor = '#9e9e9e';
                 }}
               >
-                ❌ Cancelar
+                <XMarkIcon style={{ width: 18, height: 18 }} />
+                Cancelar
               </button>
               <button
                 onClick={generarReporte}
@@ -903,7 +953,10 @@ export function ReportesPage() {
                   cursor: generando ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
                   transition: 'all 0.3s',
-                  opacity: generando ? 0.6 : 1
+                  opacity: generando ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
                 onMouseEnter={(e) => {
                   if (!generando) {
@@ -914,7 +967,8 @@ export function ReportesPage() {
                   (e.target as HTMLButtonElement).style.backgroundColor = '#2b7a78';
                 }}
               >
-                {generando ? '⏳ Generando...' : '✅ Generar Reporte'}
+                <CheckIcon style={{ width: 18, height: 18 }} />
+                {generando ? 'Generando...' : 'Generar Reporte'}
               </button>
             </div>
           </div>

@@ -224,7 +224,7 @@ export function CalendarioHorariosEditable({
             fontSize: '1.8rem',
             color: isDarkMode ? '#fff' : '#2b2b2b'
           }}>
-            📅 Horario Semanal
+            Horario Semanal
           </h2>
           <p style={{
             margin: '8px 0 0 0',

@@ -8,6 +8,9 @@ import asistenciaService from "../services/asistenciaService";
 import type { Asistencia } from "../services/asistenciaService";
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import {
+  CheckIcon
+} from '@heroicons/react/24/solid';
 
 export function EditarAsistenciaPage() {
   const { id } = useParams<{ id: string }>();
@@ -124,7 +127,9 @@ export function EditarAsistenciaPage() {
                 color: '#333'
               }}>
                 {loadingNombre ? (
-                  <span style={{ color: '#666' }}>🔍 Buscando nombre...</span>
+                  <span style={{ color: '#666' }}>
+                    Buscando nombre...
+                  </span>
                 ) : (
                   <>
                     {estudianteNombre}
@@ -146,24 +151,29 @@ export function EditarAsistenciaPage() {
               }}>
                 Estado de Asistencia:
               </label>
-              <select
-                value={estadoAsistencia}
-                onChange={(e) => setEstadoAsistencia(e.target.value)}
-                required
-                disabled={saving}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #ccc',
-                  fontSize: '1rem'
-                }}
-              >
-                <option value="">Seleccionar...</option>
-                <option value="Presente">Presente</option>
-                <option value="Ausente">Ausente</option>
-                <option value="Tiene Excusa">Tiene Excusa</option>
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={estadoAsistencia}
+                  onChange={(e) => setEstadoAsistencia(e.target.value)}
+                  required
+                  disabled={saving}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '2px solid #e0e0e0',
+                    fontSize: '1rem',
+                    appearance: 'none',
+                    paddingRight: '40px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="Presente">Presente</option>
+                  <option value="Ausente">Ausente</option>
+                  <option value="Tiene Excusa">Tiene Excusa</option>
+                </select>
+              </div>
             </div>
 
             <div style={{ 
@@ -198,10 +208,14 @@ export function EditarAsistenciaPage() {
                   border: 'none',
                   borderRadius: '6px',
                   cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1
+                  opacity: saving ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
               >
-                {saving ? 'Guardando...' : '💾 Guardar Cambios'}
+                <CheckIcon style={{ width: 18, height: 18 }} />
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </form>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { Asistencia } from "../services/asistenciaService";
 
 interface AsistenciaTableProps {
@@ -137,129 +137,148 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {asistenciasActuales.length > 0 ? (
-              asistenciasActuales.map((a) => (
-                <tr
-                  key={a.id}
-                  style={{
-                    borderTop: isDarkMode ? '1px solid #3d3d3d' : '1px solid #ddd',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isDarkMode
-                      ? 'rgba(255, 255, 255, 0.05)'
-                      : 'rgba(0, 0, 0, 0.02)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <td style={{
-                    padding: '12px',
-                    color: isDarkMode ? '#fff' : '#333'
-                  }}>
-                    {getNombreEstudiante(a.estudiante)}
-                  </td>
-                  <td style={{
-                    padding: '12px',
-                    color: isDarkMode ? '#aaa' : '#666'
-                  }}>
-                    {a.asignatura || 'N/A'}
-                  </td>
-                  <td style={{
-                    padding: '12px',
-                    color: isDarkMode ? '#aaa' : '#666'
-                  }}>
-                    {formatFecha(a.fechaYhora)}
-                  </td>
-                  <td style={{
-                    padding: '12px',
-                    fontWeight: 'bold',
-                    color: a.estadoAsistencia === "Presente"
-                      ? "#4CAF50"
-                      : a.estadoAsistencia === "Ausente"
-                        ? "#f44336"
-                        : "#FF9800"
-                  }}>
-                    {a.estadoAsistencia}
-                  </td>
-                  <td style={{
-                    padding: '12px',
-                    textAlign: 'center',
-                    display: 'flex',
-                    gap: '8px',
-                    justifyContent: 'center'
-                  }}>
-                    <button
-                      onClick={() => onEdit(a.id)}
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: isDarkMode ? "#667eea" : "#667eea",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        transition: "all 0.3s",
-                        fontSize: "0.9rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? "#667eea" : "#667eea";
-                        e.currentTarget.style.transform = "scale(1.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? "#7389eeff" : "#7389eeff";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                    >
-                      <Edit2 size={16} /> Editar
-                    </button>
-                    <button
-                      onClick={() => onDelete(a.id)}
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: "#555",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        transition: "all 0.3s",
-                        fontSize: "0.9rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#555";
-                        e.currentTarget.style.transform = "scale(1.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#818181ff";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                    >
-                      <Trash2 size={16} /> Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    padding: '20px',
-                    textAlign: 'center',
-                    color: isDarkMode ? '#aaa' : '#999'
-                  }}
-                >
-                  No hay registros de asistencia
-                </td>
-              </tr>
+  {asistenciasActuales.length > 0 ? (
+    asistenciasActuales.map((a) => (
+      <tr
+        key={a.id}
+        style={{
+          borderTop: isDarkMode ? '1px solid #3d3d3d' : '1px solid #ddd',
+          transition: 'background 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = isDarkMode
+            ? 'rgba(255, 255, 255, 0.05)'
+            : 'rgba(0, 0, 0, 0.02)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <td style={{
+          padding: '12px',
+          color: isDarkMode ? '#fff' : '#333',
+          verticalAlign: 'middle'
+        }}>
+          {getNombreEstudiante(a.estudiante)}
+        </td>
+        <td style={{
+          padding: '12px',
+          color: isDarkMode ? '#aaa' : '#666',
+          verticalAlign: 'middle'
+        }}>
+          {a.asignatura || 'N/A'}
+        </td>
+        <td style={{
+          padding: '12px',
+          color: isDarkMode ? '#aaa' : '#666',
+          verticalAlign: 'middle'
+        }}>
+          {formatFecha(a.fechaYhora)}
+        </td>
+        <td style={{
+          padding: '12px',
+          fontWeight: 'bold',
+          color: a.estadoAsistencia === "Presente"
+            ? "#4CAF50"
+            : a.estadoAsistencia === "Ausente"
+              ? "#f44336"
+              : "#FF9800",
+          textAlign: 'left',
+          verticalAlign: 'middle'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap'
+          }}>
+            <span>{a.estadoAsistencia}</span>
+            {a.late && (
+              <span title="Llegada tarde (> 15 minutos)" style={{ cursor: 'help', display: 'flex', alignItems: 'center' }}>
+                <Clock size={16} color="#FFD700" />
+              </span>
             )}
-          </tbody>
+          </div>
+        </td>
+        <td style={{
+          padding: '12px',
+          textAlign: 'center',
+          verticalAlign: 'middle'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <button
+              onClick={() => onEdit(a.id)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: "#667eea",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                fontSize: "0.9rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              <Edit2 size={16} /> Editar
+            </button>
+            <button
+              onClick={() => onDelete(a.id)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: "#555",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                transition: "all 0.3s",
+                fontSize: "0.9rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              <Trash2 size={16} /> Eliminar
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td
+        colSpan={5}
+        style={{
+          padding: '20px',
+          textAlign: 'center',
+          color: isDarkMode ? '#aaa' : '#999'
+        }}
+      >
+        No hay registros de asistencia
+      </td>
+    </tr>
+  )}
+</tbody>
+
         </table>
       </div>
 

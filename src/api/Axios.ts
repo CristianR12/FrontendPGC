@@ -3,7 +3,7 @@ import axios from "axios";
 import { auth } from "../firebaseConfig";
 
 const isDevelopment = import.meta.env.DEV;
-const baseURL = isDevelopment ? '/api/' : 'http://127.0.0.1:8000/api/';
+const baseURL = isDevelopment ? '/api' : 'http://127.0.0.1:8000/api/';
 
 console.log('🔧 Configuración Axios:', {
   isDevelopment,

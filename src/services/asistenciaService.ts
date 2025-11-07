@@ -22,6 +22,12 @@ export interface Asistencia {
   estadoAsistencia: 'Presente' | 'Ausente' | 'Tiene Excusa';
   fechaYhora: string | Date;
   asignatura?: string;
+  horaRegistro?: string;
+  late?: boolean; // ✅ NUEVO: Indica si llegó tarde (> 15 minutos)
+  courseId?: string;
+  groupId?: string | null;
+  fechaDocId?: string;
+  hasGroups?: boolean;
 }
 
 export interface CreateAsistenciaDto {

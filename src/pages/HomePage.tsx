@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { 
-  Plus, 
-  RefreshCw, 
-  BarChart3, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Plus,
+  RefreshCw,
+  BarChart3,
+  CheckCircle,
+  XCircle,
   FileText,
   TrendingUp,
   Clipboard,
@@ -325,7 +325,7 @@ export function HomePage() {
               marginBottom: "0px",
               fontSize: "2rem",
             }}>
-              👋 Bienvenido, {nombrePersona}
+              Bienvenido, {nombrePersona}
             </h2>
             <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: 0 }}>
               Sistema de Control de Asistencias {userType && `• ${userType}`}
@@ -363,12 +363,12 @@ export function HomePage() {
             transition: "transform 0.3s",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}>
             <div>
               <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Total de Registros</p>
               <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#4CAF50" }}>{stats.totalAsistencias}</p>
@@ -389,12 +389,12 @@ export function HomePage() {
             transition: "transform 0.3s",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}>
             <div>
               <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Presentes</p>
               <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#2196F3" }}>{stats.presentes}</p>
@@ -415,12 +415,12 @@ export function HomePage() {
             transition: "transform 0.3s",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}>
             <div>
               <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Ausentes</p>
               <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#f44336" }}>{stats.ausentes}</p>
@@ -441,12 +441,12 @@ export function HomePage() {
             transition: "transform 0.3s",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}>
             <div>
               <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Con Excusa</p>
               <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#c178ce" }}>{stats.conExcusa}</p>
@@ -467,12 +467,12 @@ export function HomePage() {
             transition: "transform 0.3s",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-5px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-          }}>
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}>
             <div>
               <p style={{ margin: "0 0 10px 0", color: isDarkMode ? "#aaa" : "#666", fontSize: "0.9rem" }}>Tasa de Asistencia</p>
               <p style={{ margin: 0, fontSize: "2rem", fontWeight: "bold", color: "#9C27B0" }}>{stats.tasaAsistencia}%</p>
@@ -495,7 +495,7 @@ export function HomePage() {
           </h2>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            
+
 
             <button
               onClick={() => navigate("/reportes")}
@@ -840,6 +840,12 @@ export function HomePage() {
               nombresEstudiantes={nombresEstudiantes}
               onDelete={handleDelete}
               onEdit={handleEdit}
+              onView={(id) => {
+                const estudiante = asistencias.find(a => a.id === id);
+                if (estudiante) {
+                  alert(`Estudiante: ${estudiante.estudiante}\nAsignatura: ${estudiante.asignatura}\nFecha: ${estudiante.fechaYhora}\nEstado: ${estudiante.estadoAsistencia}`);
+                }
+              }}
             />
           </div>
         )}

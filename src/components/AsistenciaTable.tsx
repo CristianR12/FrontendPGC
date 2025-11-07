@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, ChevronLeft, ChevronRight,ViewIcon } from 'lucide-react';
+
 import type { Asistencia } from "../services/asistenciaService";
 
 interface AsistenciaTableProps {
@@ -7,6 +8,7 @@ interface AsistenciaTableProps {
   nombresEstudiantes?: Record<string, string>; // ✅ NUEVO
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  onView: (id: string) => void; // ✅ NUEVO
 }
 
 /**
@@ -16,7 +18,8 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
   asistencias,
   nombresEstudiantes = {}, // ✅ NUEVO
   onDelete,
-  onEdit
+  onEdit,
+  onView
 }) => {
   const isDarkMode = document.body.classList.contains('dark-mode');
 
@@ -190,6 +193,34 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                     gap: '8px',
                     justifyContent: 'center'
                   }}>
+
+                  <button
+                      onClick={() => onView(a.id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: isDarkMode ? "#333" : "#333",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.3s",
+                        fontSize: "0.9rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isDarkMode ? "#333" : "#333";
+                        e.currentTarget.style.transform = "scale(1.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = isDarkMode ? "#333" : "#333";
+                        e.currentTarget.style.transform = "scale(1)";
+                      }}
+                    >
+                      <ViewIcon size={16} /> Ver
+                    </button>
+
                     <button
                       onClick={() => onEdit(a.id)}
                       style={{
@@ -210,7 +241,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                         e.currentTarget.style.transform = "scale(1.05)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? "#7389eeff" : "#7389eeff";
+                        e.currentTarget.style.backgroundColor = isDarkMode ? "#667eea" : "#667eea";
                         e.currentTarget.style.transform = "scale(1)";
                       }}
                     >
@@ -220,7 +251,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                       onClick={() => onDelete(a.id)}
                       style={{
                         padding: '8px 16px',
-                        backgroundColor: "#555",
+                        backgroundColor: "#dd6060ff",
                         color: "white",
                         border: "none",
                         borderRadius: "6px",
@@ -232,11 +263,11 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
                         gap: "6px"
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#555";
+                        e.currentTarget.style.backgroundColor = "#dd6060ff";
                         e.currentTarget.style.transform = "scale(1.05)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "#818181ff";
+                        e.currentTarget.style.backgroundColor = "#dd6060ff";
                         e.currentTarget.style.transform = "scale(1)";
                       }}
                     >

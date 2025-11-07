@@ -202,6 +202,34 @@ export function AnalisisPage() {
       .sort((a, b) => parseFloat(b.porcentaje) - parseFloat(a.porcentaje));
   })();
 
+  // ✅ Estudiantes con retraso
+  const estudiantesConRetraso = (() => {
+    const mapa = new Map<string, { presente: number; conRetraso: number; total: number }>();
+    
+    asistenciasFiltradas.forEach(a => {
+      if (!mapa.has(a.estudiante)) {
+        mapa.set(a.estudiante, { presente: 0, conRetraso: 0, total: 0 });
+      }
+      
+      const stats = mapa.get(a.estudiante)!;
+      stats.total++;
+      if (a.estadoAsistencia === 'Presente') {
+        stats.presente++;
+        if (a.late) stats.conRetraso++;
+      }
+    });
+    
+    return Array.from(mapa.entries())
+      .map(([cedula, stats]) => ({
+        cedula,
+        nombre: nombresEstudiantes[cedula] || cedula,
+        ...stats,
+        porcentajeRetraso: stats.presente > 0 ? ((stats.conRetraso / stats.presente) * 100).toFixed(1) : '0'
+      }))
+      .filter(e => e.conRetraso > 0)
+      .sort((a, b) => parseFloat(b.porcentajeRetraso) - parseFloat(a.porcentajeRetraso));
+  })();
+
   // Tasas generales
   const tasasGenerales = (() => {
     const total = asistenciasFiltradas.length;
@@ -478,6 +506,65 @@ export function AnalisisPage() {
                     color: '#1976d2'
                   }}>
                     {item.porcentaje}%
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ✅ ESTUDIANTES CON RETRASO */}
+        {estudiantesConRetraso.length > 0 && (
+          <div style={{
+            background: isDarkMode ? '#2d2d2d' : 'white',
+            padding: '25px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            marginBottom: '30px',
+            border: isDarkMode ? '1px solid #3d3d3d' : 'none',
+            borderLeft: '5px solid #FFD700'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#FF8C00', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <svg style={{ width: '24px', height: '24px' }} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+              </svg>
+              Estudiantes que Llegan Tarde
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
+              {estudiantesConRetraso.map((estudiante, idx) => (
+                <div key={idx} style={{
+                  background: isDarkMode ? '#333' : '#fff8e1',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #FFD700'
+                }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isDarkMode ? '#fff' : '#333' }}>
+                    {estudiante.nombre}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '10px' }}>
+                    Cédula: {estudiante.cedula}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '10px' }}>
+                    <span>Presentes: <strong>{estudiante.presente}</strong></span>
+                    <span>Con Retraso: <strong>{estudiante.conRetraso}</strong></span>
+                  </div>
+                  <div style={{
+                    padding: '8px',
+                    background: '#FFE082',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    color: '#FF8C00',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}>
+                    <svg style={{ width: '16px', height: '16px' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    Retrasos: {estudiante.porcentajeRetraso}%
                   </div>
                 </div>
               ))}

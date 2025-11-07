@@ -147,6 +147,33 @@ export function EstadisticasPage() {
       .sort((a, b) => parseInt(b.porcentaje) - parseInt(a.porcentaje));
   })();
 
+  // ✅ Estudiantes con retraso
+  const estudiantesConRetraso = (() => {
+    const mapa = new Map<string, { presente: number; conRetraso: number }>();
+    
+    asistencias.forEach(a => {
+      if (!mapa.has(a.estudiante)) {
+        mapa.set(a.estudiante, { presente: 0, conRetraso: 0 });
+      }
+      
+      const stats = mapa.get(a.estudiante)!;
+      if (a.estadoAsistencia === 'Presente') {
+        stats.presente++;
+        if (a.late) stats.conRetraso++;
+      }
+    });
+    
+    return Array.from(mapa.entries())
+      .map(([cedula, stats]) => ({
+        cedula,
+        nombre: nombresEstudiantes[cedula] || cedula,
+        ...stats,
+        porcentajeRetraso: stats.presente > 0 ? ((stats.conRetraso / stats.presente) * 100).toFixed(1) : '0'
+      }))
+      .filter(e => e.conRetraso > 0)
+      .sort((a, b) => parseFloat(b.porcentajeRetraso) - parseFloat(a.porcentajeRetraso));
+  })();
+
   // Estudiantes con menor asistencia
   const estudiantesBajaAsistencia = asistenciasPorEstudiante
     .filter(e => parseFloat(e.porcentaje) < 80)
@@ -350,6 +377,73 @@ export function EstadisticasPage() {
             </tbody>
           </table>
         </div>
+
+        {/* ✅ ESTUDIANTES CON RETRASO */}
+        {estudiantesConRetraso.length > 0 && (
+          <div style={{
+            background: isDarkMode ? '#2d2d2d' : '#fff8e1',
+            padding: '25px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            border: isDarkMode ? '2px solid #FFD700' : '2px solid #FFD700',
+            marginBottom: '30px'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#FF8C00', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <svg style={{ width: '24px', height: '24px' }} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+              </svg>
+              Estudiantes que Llegan Tarde
+            </h3>
+            
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: isDarkMode ? '2px solid #FFD700' : '2px solid #FFD700' }}>
+                  <th style={{ textAlign: 'left', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>#</th>
+                  <th style={{ textAlign: 'left', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Estudiante</th>
+                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Presentes</th>
+                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Con Retraso</th>
+                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>% Retrasos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estudiantesConRetraso.map((estudiante, idx) => (
+                  <tr key={idx} style={{ borderBottom: isDarkMode ? '1px solid #555' : '1px solid #FFE082' }}>
+                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>
+                      {idx + 1}
+                    </td>
+                    <td style={{ padding: '12px', color: isDarkMode ? '#fff' : '#333' }}>
+                      <div style={{ fontWeight: '600' }}>{estudiante.nombre}</div>
+                      <div style={{ fontSize: '0.85rem', color: isDarkMode ? '#aaa' : '#999' }}>{estudiante.cedula}</div>
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '12px', color: '#4facfe', fontWeight: 'bold' }}>
+                      {estudiante.presente}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '12px', color: '#FFD700', fontWeight: 'bold' }}>
+                      {estudiante.conRetraso}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '12px' }}>
+                      <div style={{
+                        background: '#FFE082',
+                        color: '#FF8C00',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontWeight: 'bold',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <svg style={{ width: '14px', height: '14px' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                        </svg>
+                        {estudiante.porcentajeRetraso}%
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Estudiantes con Baja Asistencia */}
         {estudiantesBajaAsistencia.length > 0 && (

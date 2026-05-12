@@ -59,6 +59,30 @@ export const asistenciaService = {
     }
   },
 
+  /** Vista Inicio: filas U1/U2 según servidor (ventana TrialREC sin salón, última sesión por fechaDocId). */
+  async getVistaInicio(asignatura: string): Promise<Asistencia[]> {
+    try {
+      const headers = await getAuthHeader();
+      const response = await api.get('/asistencias/vista-inicio/', {
+        headers,
+        params: { asignatura },
+      });
+      const data = response.data;
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ vista-inicio: respuesta inesperada', data);
+        return [];
+      }
+      return data;
+    } catch (error: any) {
+      console.error('❌ Error vista-inicio:', error);
+      throw new Error(
+        error?.response?.data?.error ||
+          error?.message ||
+          'No se pudo cargar la vista de inicio'
+      );
+    }
+  },
+
   // Obtener una asistencia por ID
   async getById(id: string): Promise<Asistencia> {
     try {

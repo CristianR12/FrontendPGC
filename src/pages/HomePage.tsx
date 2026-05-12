@@ -1,7 +1,6 @@
 // src/pages/HomePage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { 
   Plus, 
@@ -9,8 +8,6 @@ import {
   BarChart3, 
   CheckCircle, 
   XCircle, 
-  FileText,
-  TrendingUp,
   Clipboard,
   ListChecks,
   CheckCircle2,
@@ -20,7 +17,6 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { DashboardCard } from "../components/DashboardCard";
 import { AsistenciaTable } from "../components/AsistenciaTable";
 import { Toast } from "../components/Toast";
 import { CalendarioHorariosEditable } from "../components/CalendarioHorariosEditable";
@@ -31,6 +27,7 @@ import type { Course } from "../services/horarioApiService";
 import { getAuth } from "firebase/auth";
 import { Header } from "../components/Header";
 import { db } from '../firebaseConfig';
+import { computeVistaRowsLocal } from "../utils/vistaInicioAsistencias";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -38,6 +35,8 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [vistaInicioAsistencias, setVistaInicioAsistencias] = useState<Asistencia[]>([]);
+  const [loadingVistaInicio, setLoadingVistaInicio] = useState(false);
   const [nombresEstudiantes, setNombresEstudiantes] = useState<Record<string, string>>({});
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -52,11 +51,22 @@ export function HomePage() {
   const [userType, setUserType] = useState<'Estudiante' | 'Profesor' | null>(null);
   const [loadingUserType, setLoadingUserType] = useState(true);
   const [cursos, setCursos] = useState<Course[]>([]);
-  const [loadingHorario, setLoadingHorario] = useState(true);
+  const [, setLoadingHorario] = useState(true);
   const [nombrePersona, setNombrePersona] = useState<string>('');
 
   // Array de asignaturas únicas extraídas de las asistencias
   const [asignaturasDisponibles, setAsignaturasDisponibles] = useState<string[]>([]);
+
+  const asistenciasRef = useRef<Asistencia[]>([]);
+  const cursosRef = useRef<Course[]>([]);
+
+  useEffect(() => {
+    asistenciasRef.current = asistencias;
+  }, [asistencias]);
+
+  useEffect(() => {
+    cursosRef.current = cursos;
+  }, [cursos]);
 
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -143,22 +153,53 @@ export function HomePage() {
   };
 
   const stats = {
-    totalAsistencias: asistencias.length,
-    presentes: asistencias.filter(a => a.estadoAsistencia === "Presente").length,
-    ausentes: asistencias.filter(a => a.estadoAsistencia === "Ausente").length,
-    conExcusa: asistencias.filter(a => a.estadoAsistencia === "Tiene Excusa").length,
-    tasaAsistencia: asistencias.length > 0
-      ? ((asistencias.filter(a => a.estadoAsistencia === "Presente").length / asistencias.length) * 100).toFixed(1)
+    totalAsistencias: vistaInicioAsistencias.length,
+    presentes: vistaInicioAsistencias.filter(a => a.estadoAsistencia === "Presente").length,
+    ausentes: vistaInicioAsistencias.filter(a => a.estadoAsistencia === "Ausente").length,
+    conExcusa: vistaInicioAsistencias.filter(a => a.estadoAsistencia === "Tiene Excusa").length,
+    tasaAsistencia: vistaInicioAsistencias.length > 0
+      ? ((vistaInicioAsistencias.filter(a => a.estadoAsistencia === "Presente").length / vistaInicioAsistencias.length) * 100).toFixed(1)
       : 0
   };
-
-  const asistenciasFiltradas = filtroAsignatura
-    ? asistencias.filter(a => a.asignatura === filtroAsignatura)
-    : asistencias;
 
   useEffect(() => {
     cargarAsistencias();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!filtroAsignatura) {
+        if (!cancelled) {
+          setVistaInicioAsistencias([]);
+          setLoadingVistaInicio(false);
+        }
+        return;
+      }
+      setLoadingVistaInicio(true);
+      try {
+        const rows = await asistenciaService.getVistaInicio(filtroAsignatura);
+        if (cancelled) return;
+        setVistaInicioAsistencias(rows);
+        const cedulas = [...new Set(rows.map((a) => a.estudiante))];
+        if (cedulas.length > 0) {
+          const nombres = await asistenciaService.getNombresEstudiantes(cedulas);
+          if (!cancelled) setNombresEstudiantes((prev) => ({ ...prev, ...nombres }));
+        }
+      } catch {
+        if (!cancelled) {
+          setVistaInicioAsistencias(
+            computeVistaRowsLocal(asistenciasRef.current, cursosRef.current, filtroAsignatura)
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingVistaInicio(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filtroAsignatura, asistencias]);
 
   const cargarAsistencias = async () => {
     try {
@@ -229,7 +270,7 @@ export function HomePage() {
   };
 
   const handleDelete = async (id: string) => {
-    const asistencia = asistencias.find(a => a.id === id);
+    const asistencia = asistencias.find(a => a.id === id) ?? vistaInicioAsistencias.find(a => a.id === id);
 
     if (!asistencia) {
       showNotification('Asistencia no encontrada', 'error');
@@ -266,15 +307,6 @@ export function HomePage() {
     } catch (error) {
       console.error('Error al actualizar horario:', error);
       showNotification('Error al actualizar horario', 'error');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/");
-    } catch (err) {
-      console.error("Error al cerrar sesión:", err);
     }
   };
 
@@ -343,7 +375,7 @@ export function HomePage() {
           />
         )}
 
-        {/* Grid de Estadísticas de Asistencias */}
+        {filtroAsignatura ? (
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -480,6 +512,19 @@ export function HomePage() {
             <AreaChart size={40} color="#9C27B0" strokeWidth={1.5} />
           </div>
         </div>
+        ) : (
+        <div style={{
+          marginBottom: "40px",
+          padding: "20px",
+          borderRadius: "12px",
+          background: isDarkMode ? "#2d2d2d" : "#f5f5f5",
+          border: isDarkMode ? "1px solid #3d3d3d" : "1px solid #e0e0e0",
+          color: isDarkMode ? "#ccc" : "#555",
+          textAlign: "center",
+        }}>
+          Elige una asignatura abajo para ver las estadísticas y la tabla del día en curso o de la última sesión.
+        </div>
+        )}
 
         {/* Acciones Rápidas */}
         <div style={{
@@ -491,7 +536,7 @@ export function HomePage() {
           gap: "15px"
         }}>
           <h2 style={{ margin: 0, color: isDarkMode ? "#fff" : "#2b7a78", display: "flex", alignItems: "center", gap: "10px" }}>
-            <Clipboard size={24} /> Gestión de Asistencias ({asistenciasFiltradas.length})
+            <Clipboard size={24} /> Gestión de Asistencias ({filtroAsignatura ? vistaInicioAsistencias.length : "—"})
           </h2>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -727,7 +772,7 @@ export function HomePage() {
             alignItems: "center",
             justifyContent: "center"
           }}>
-            <strong style={{ color: isDarkMode ? "#aaa" : "#555" }}>Filtrar por asignatura:</strong>
+            <strong style={{ color: isDarkMode ? "#aaa" : "#555" }}>Ver resumen por asignatura:</strong>
 
             <label style={{
               display: "flex",
@@ -750,12 +795,11 @@ export function HomePage() {
                 style={{ accentColor: "#2196F3" }}
               />
               <span style={{ fontWeight: filtroAsignatura === null ? "600" : "400" }}>
-                Todas ({asistencias.length})
+                Sin selección
               </span>
             </label>
 
             {asignaturasDisponibles.map((asignatura) => {
-              const count = asistencias.filter(a => a.asignatura === asignatura).length;
               return (
                 <label
                   key={asignatura}
@@ -782,7 +826,7 @@ export function HomePage() {
                     style={{ accentColor: "#2196F3" }}
                   />
                   <span style={{ fontWeight: filtroAsignatura === asignatura ? "600" : "400" }}>
-                    {asignatura} ({count})
+                    {asignatura}
                   </span>
                 </label>
               );
@@ -790,8 +834,26 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Tabla de Asistencias */}
-        {asistenciasFiltradas.length === 0 ? (
+        {/* Tabla de Asistencias (vista Inicio: solo con asignatura elegida) */}
+        {!filtroAsignatura ? (
+          <div style={{
+            background: isDarkMode ? "#2d2d2d" : "white",
+            padding: "40px 20px",
+            borderRadius: "12px",
+            textAlign: "center",
+            boxShadow: isDarkMode ? "0 2px 10px rgba(0,0,0,0.5)" : "0 2px 10px rgba(0,0,0,0.1)",
+            border: isDarkMode ? "1px solid #3d3d3d" : "none"
+          }}>
+            <h3 style={{ color: isDarkMode ? "#fff" : "#666", marginBottom: "10px" }}>
+              Selecciona una asignatura
+            </h3>
+            <p style={{ color: isDarkMode ? "#aaa" : "#999", margin: 0 }}>
+              Elige un curso arriba para ver la tabla de asistencias del día en ventana o de la última sesión.
+            </p>
+          </div>
+        ) : loadingVistaInicio ? (
+          <LoadingSpinner message="Cargando vista de asistencias..." />
+        ) : vistaInicioAsistencias.length === 0 ? (
           <div style={{
             background: isDarkMode ? "#2d2d2d" : "white",
             padding: "60px 20px",
@@ -802,30 +864,11 @@ export function HomePage() {
           }}>
             <div style={{ fontSize: "4rem", marginBottom: "20px" }}>📭</div>
             <h3 style={{ color: isDarkMode ? "#fff" : "#666", marginBottom: "10px" }}>
-              No hay asistencias registradas
+              Sin registros en esta vista
             </h3>
-            <p style={{ color: isDarkMode ? "#aaa" : "#999" }}>
-              {filtroAsignatura
-                ? `No hay registros para ${filtroAsignatura}`
-                : "Comienza registrando tu primera asistencia"
-              }
+            <p style={{ color: isDarkMode ? "#aaa" : "#999", maxWidth: "480px", margin: "0 auto" }}>
+              Sin registros para esta asignatura. Habla con un encargado para resolver este problema.
             </p>
-            {filtroAsignatura && (
-              <button
-                onClick={() => setFiltroAsignatura(null)}
-                style={{
-                  marginTop: "20px",
-                  padding: "10px 20px",
-                  backgroundColor: "#2196F3",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer"
-                }}
-              >
-                Ver todas las asistencias
-              </button>
-            )}
           </div>
         ) : (
           <div style={{
@@ -836,7 +879,7 @@ export function HomePage() {
             border: isDarkMode ? "1px solid #3d3d3d" : "none"
           }}>
             <AsistenciaTable
-              asistencias={asistenciasFiltradas}
+              asistencias={vistaInicioAsistencias}
               nombresEstudiantes={nombresEstudiantes}
               onDelete={handleDelete}
               onEdit={handleEdit}

@@ -170,10 +170,10 @@ export function AsistenciasPage() {
           <div>
             <h2 style={{ margin: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <ChartBarIcon style={{ width: 28, height: 28 }} />
-              Gestión Avanzada de Asistencias
+              Todas las asistencias
             </h2>
             <p style={{ margin: '5px 0 0 0', color: '#666' }}>
-              Mostrando {asistenciasFiltradas.length} de {asistencias.length} registros
+              Histórico completo: {asistenciasFiltradas.length} de {asistencias.length} registros visibles con los filtros actuales
             </p>
           </div>
 

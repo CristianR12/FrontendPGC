@@ -98,7 +98,7 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
     {
       category: 'Gestión',
       items: [
-        { icon: <ClipboardIcon style={{ width: 20, height: 20 }} />, label: 'Asistencias', path: '/asistencias' },
+        { icon: <ClipboardIcon style={{ width: 20, height: 20 }} />, label: 'Todas las asistencias', path: '/asistencias' },
         
       ]
     },

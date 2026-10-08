@@ -15,7 +15,7 @@ interface HeaderProps {
  * - En páginas autenticadas: muestra título + botón de cerrar sesión
  * - El logo se adapta automáticamente al modo oscuro
  */
-export function Header({ title, showLogout = false, onLogout }: HeaderProps) {
+export function Header({ title }: HeaderProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {

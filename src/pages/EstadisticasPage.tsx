@@ -1,532 +1,376 @@
 // src/pages/EstadisticasPage.tsx
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
-import { Header } from '../components/Header';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Toast } from '../components/Toast';
-import asistenciaService from "../services/asistenciaService";
-import type { Asistencia } from "../services/asistenciaService";
+// Estadísticas de asistencia: resumen, gráficas y consejos para el docente (recordatorios, tardanzas, reconocimientos).
+// Todo lo calcula el servidor; aquí solo se muestra.
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
-  ChartBarIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  DocumentCheckIcon,
-  AcademicCapIcon,
-  ExclamationTriangleIcon,
-  HomeIcon
-} from '@heroicons/react/24/solid';
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
+import { AlertTriangle, BarChart3, Clock, RefreshCw, Trophy } from 'lucide-react';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorMessage } from '../components/ErrorMessage';
+import estadisticasApiService from '../services/estadisticasApiService';
+import type { Estadisticas, MapaCalor } from '../services/estadisticasApiService';
+import { fechaCorta } from '../utils/reporteAsistencia';
+import { fechaLarga } from '../utils/filtroInicio';
+import { todayDateStringBogota } from '../utils/vistaInicioAsistencias';
+
+const VERDE = '#4CAF50';
+const ROJO = '#e53935';
+const NARANJA = '#FF9800';
+const AZUL = '#2196F3';
 
 export function EstadisticasPage() {
-  const navigate = useNavigate();
-  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
-  const [nombresEstudiantes, setNombresEstudiantes] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [notification, setNotification] = useState<{
-    show: boolean;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>({ show: false, message: '', type: 'info' });
-
-  // Detectar modo oscuro
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDarkMode(document.body.classList.contains('dark-mode'));
-    };
-
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
-    setNotification({ show: true, message, type });
-  };
+  const [datos, setDatos] = useState<Estadisticas | null>(null);
+  const [unidades, setUnidades] = useState<{ id: string; nombre: string }[]>([]);
+  const [unidad, setUnidad] = useState('');
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [recarga, setRecarga] = useState(0);
+  const [oscuro, setOscuro] = useState(false);
+  const hoy = todayDateStringBogota();
 
   useEffect(() => {
-    cargarAsistencias();
+    const revisar = () => setOscuro(document.body.classList.contains('dark-mode'));
+    revisar();
+    const obs = new MutationObserver(revisar);
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
   }, []);
 
-  const cargarAsistencias = async () => {
-    try {
-      setLoading(true);
-      const data = await asistenciaService.getAll();
-      setAsistencias(data);
+  useEffect(() => {
+    let cancelado = false;
+    setCargando(true);
+    setError(null);
+    estadisticasApiService.obtener({ unidad, desde, hasta })
+      .then((d) => {
+        if (cancelado) return;
+        setDatos(d);
+        if (!unidad) setUnidades(d.unidades);
+      })
+      .catch((e) => { if (!cancelado) setError(e.message || 'No se pudieron cargar las estadísticas'); })
+      .finally(() => { if (!cancelado) setCargando(false); });
+    return () => { cancelado = true; };
+  }, [unidad, desde, hasta, recarga]);
 
-      const cedulasUnicas = [...new Set(data.map(a => a.estudiante))];
-      if (cedulasUnicas.length > 0) {
-        const nombres = await asistenciaService.getNombresEstudiantes(cedulasUnicas);
-        setNombresEstudiantes(nombres);
-      }
-    } catch (err: any) {
-      console.error('Error al cargar asistencias:', err);
-      showNotification('Error al cargar asistencias', 'error');
-    } finally {
-      setLoading(false);
-    }
+  const color = {
+    texto: oscuro ? '#fff' : '#2b2b2b',
+    tenue: oscuro ? '#aaa' : '#666',
+    fondo: oscuro ? '#2d2d2d' : 'white',
+    borde: oscuro ? '#3d3d3d' : '#e0e0e0',
+    rejilla: oscuro ? '#3d3d3d' : '#eeeeee',
   };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (err) {
-      console.error('Error al cerrar sesión:', err);
-    }
+  const tarjeta: React.CSSProperties = {
+    background: color.fondo, borderRadius: '12px', padding: '22px', boxShadow: oscuro ? '0 2px 8px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.08)',
+    border: oscuro ? '1px solid #3d3d3d' : 'none', minWidth: 0,
   };
-
-  // ============================================
-  // CÁLCULOS ESTADÍSTICOS
-  // ============================================
-
-  const estadisticasGenerales = {
-    total: asistencias.length,
-    presentes: asistencias.filter(a => a.estadoAsistencia === 'Presente').length,
-    ausentes: asistencias.filter(a => a.estadoAsistencia === 'Ausente').length,
-    conExcusa: asistencias.filter(a => a.estadoAsistencia === 'Tiene Excusa').length,
-    tasaAsistencia: asistencias.length > 0 
-      ? ((asistencias.filter(a => a.estadoAsistencia === 'Presente').length / asistencias.length) * 100).toFixed(1)
-      : 0
+  const tooltip = { contentStyle: { background: color.fondo, border: `1px solid ${color.borde}`, borderRadius: '8px', color: color.texto }, labelStyle: { color: color.texto } };
+  const campo: React.CSSProperties = {
+    height: '40px', padding: '0 10px', borderRadius: '8px', border: `1px solid ${oscuro ? '#3d3d3d' : '#d0d0d0'}`, boxSizing: 'border-box',
+    background: oscuro ? '#1e1e1e' : 'white', color: color.texto, fontSize: '0.9rem', width: '100%',
   };
+  const etiqueta: React.CSSProperties = { display: 'grid', gap: '6px', alignContent: 'start', fontSize: '0.78rem', fontWeight: 700, color: color.tenue };
 
-  // Asistencias por estudiante
-  const asistenciasPorEstudiante = (() => {
-    const mapa = new Map<string, { presente: number; ausente: number; excusa: number; total: number }>();
-    
-    asistencias.forEach(a => {
-      const cedula = a.estudiante;
-      if (!mapa.has(cedula)) {
-        mapa.set(cedula, { presente: 0, ausente: 0, excusa: 0, total: 0 });
-      }
-      
-      const stats = mapa.get(cedula)!;
-      stats.total++;
-      
-      if (a.estadoAsistencia === 'Presente') stats.presente++;
-      else if (a.estadoAsistencia === 'Ausente') stats.ausente++;
-      else if (a.estadoAsistencia === 'Tiene Excusa') stats.excusa++;
-    });
-    
-    return Array.from(mapa.entries())
-      .map(([cedula, stats]) => ({
-        cedula,
-        nombre: nombresEstudiantes[cedula] || cedula,
-        ...stats,
-        porcentaje: ((stats.presente / stats.total) * 100).toFixed(1)
-      }))
-      .sort((a, b) => parseFloat(b.porcentaje) - parseFloat(a.porcentaje));
-  })();
+  const distribucion = useMemo(() => datos ? [
+    { nombre: 'Presentes', valor: datos.resumen.presentes, color: VERDE },
+    { nombre: 'Ausentes', valor: datos.resumen.ausentes, color: ROJO },
+    { nombre: 'Con excusa', valor: datos.resumen.excusas, color: NARANJA },
+  ].filter((d) => d.valor > 0) : [], [datos]);
 
-  // Asistencias por curso
-  const asistenciasPorCurso = (() => {
-    const mapa = new Map<string, { presente: number; ausente: number; excusa: number; total: number }>();
-    
-    asistencias.forEach(a => {
-      const curso = a.asignatura || 'Sin asignatura';
-      if (!mapa.has(curso)) {
-        mapa.set(curso, { presente: 0, ausente: 0, excusa: 0, total: 0 });
-      }
-      
-      const stats = mapa.get(curso)!;
-      stats.total++;
-      
-      if (a.estadoAsistencia === 'Presente') stats.presente++;
-      else if (a.estadoAsistencia === 'Ausente') stats.ausente++;
-      else if (a.estadoAsistencia === 'Tiene Excusa') stats.excusa++;
-    });
-    
-    return Array.from(mapa.entries())
-      .map(([curso, stats]) => ({
-        curso,
-        ...stats,
-        porcentaje: ((stats.presente / stats.total) * 100).toFixed(1)
-      }))
-      .sort((a, b) => parseInt(b.porcentaje) - parseInt(a.porcentaje));
-  })();
+  if (cargando && !datos) return <LoadingSpinner message="Calculando estadísticas..." />;
+  if (error && !datos) return <ErrorMessage message={error} onRetry={() => setRecarga((n) => n + 1)} />;
+  if (!datos) return null;
 
-  // ✅ Estudiantes con retraso
-  const estudiantesConRetraso = (() => {
-    const mapa = new Map<string, { presente: number; conRetraso: number }>();
-    
-    asistencias.forEach(a => {
-      if (!mapa.has(a.estudiante)) {
-        mapa.set(a.estudiante, { presente: 0, conRetraso: 0 });
-      }
-      
-      const stats = mapa.get(a.estudiante)!;
-      if (a.estadoAsistencia === 'Presente') {
-        stats.presente++;
-        if (a.late) stats.conRetraso++;
-      }
-    });
-    
-    return Array.from(mapa.entries())
-      .map(([cedula, stats]) => ({
-        cedula,
-        nombre: nombresEstudiantes[cedula] || cedula,
-        ...stats,
-        porcentajeRetraso: stats.presente > 0 ? ((stats.conRetraso / stats.presente) * 100).toFixed(1) : '0'
-      }))
-      .filter(e => e.conRetraso > 0)
-      .sort((a, b) => parseFloat(b.porcentajeRetraso) - parseFloat(a.porcentajeRetraso));
-  })();
-
-  // Estudiantes con menor asistencia
-  const estudiantesBajaAsistencia = asistenciasPorEstudiante
-    .filter(e => parseFloat(e.porcentaje) < 80)
-    .slice(0, 5);
-
-  if (loading) return <LoadingSpinner message="Cargando estadísticas..." />;
+  const { resumen } = datos;
+  const sinDatos = resumen.total === 0;
+  const kpis: { titulo: string; valor: string; detalle: string; color: string }[] = [
+    { titulo: 'Asistencia', valor: resumen.tasa === null ? '—' : `${resumen.tasa}%`, detalle: `${resumen.sesiones} ${resumen.sesiones === 1 ? 'clase' : 'clases'} · ${resumen.estudiantes} estudiantes`, color: VERDE },
+    { titulo: 'Registros', valor: String(resumen.total), detalle: 'en el período', color: AZUL },
+    { titulo: 'Presentes', valor: String(resumen.presentes), detalle: 'asistieron', color: VERDE },
+    { titulo: 'Ausentes', valor: String(resumen.ausentes), detalle: 'sin excusa', color: ROJO },
+    { titulo: 'Con excusa', valor: String(resumen.excusas), detalle: 'justificadas', color: NARANJA },
+    { titulo: 'Llegadas tarde', valor: String(resumen.tardes), detalle: 'de más de 15 min', color: '#9C27B0' },
+  ];
 
   return (
     <>
-      {notification.show && (
-        <Toast
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification({ ...notification, show: false })}
-        />
-      )}
-
-      <Header title="Estadísticas de Asistencias" showLogout={true} onLogout={handleLogout} />
-
-      <div style={{ padding: '30px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h2 style={{ marginBottom: '30px', color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <ChartBarIcon style={{ width: '32px', height: '32px' }} />
-          Panel de Estadísticas
-        </h2>
-
-        {/* KPIs Principales */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
-          marginBottom: '40px'
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '10px' }}>Total Registros</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-              {estadisticasGenerales.total}
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>de asistencias</div>
+      <div style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Encabezado */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '30px' }}>
+          <div>
+            <h2 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <BarChart3 size={28} />
+              Estadísticas
+            </h2>
+            <p style={{ margin: '5px 0 0 0', color: color.tenue }}>Cómo va la asistencia de tus cursos y qué puedes hacer al respecto</p>
           </div>
-
-          <div style={{
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '10px' }}>Tasa Asistencia</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-              {estadisticasGenerales.tasaAsistencia}%
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>promedio general</div>
-          </div>
-
-          <div style={{
-            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '10px' }}>Presentes</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-              {estadisticasGenerales.presentes}
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>registros</div>
-          </div>
-
-          <div style={{
-            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            padding: '20px',
-            borderRadius: '12px',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '10px' }}>Ausentes</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '5px' }}>
-              {estadisticasGenerales.ausentes}
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>registros</div>
-          </div>
-        </div>
-
-        {/* Distribución de Estados */}
-        <div style={{
-          background: isDarkMode ? '#2d2d2d' : 'white',
-          padding: '25px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          marginBottom: '30px',
-          border: isDarkMode ? '1px solid #3d3d3d' : 'none'
-        }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78' }}>Distribución de Estados</h3>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-            <div style={{
-              padding: '15px',
-              background: isDarkMode ? '#333' : '#f0f7ff',
-              borderRadius: '8px',
-              borderLeft: '4px solid #4facfe'
-            }}>
-              <div style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '5px' }}>Presentes</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#4facfe' }}>
-                {estadisticasGenerales.presentes}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: isDarkMode ? '#999' : '#999' }}>
-                ({((estadisticasGenerales.presentes / estadisticasGenerales.total) * 100).toFixed(1)}%)
-              </div>
-            </div>
-
-            <div style={{
-              padding: '15px',
-              background: isDarkMode ? '#333' : '#ffebee',
-              borderRadius: '8px',
-              borderLeft: '4px solid #f5576c'
-            }}>
-              <div style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '5px' }}>Ausentes</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#f5576c' }}>
-                {estadisticasGenerales.ausentes}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: isDarkMode ? '#999' : '#999' }}>
-                ({((estadisticasGenerales.ausentes / estadisticasGenerales.total) * 100).toFixed(1)}%)
-              </div>
-            </div>
-
-            <div style={{
-              padding: '15px',
-              background: isDarkMode ? '#333' : '#fff3e0',
-              borderRadius: '8px',
-              borderLeft: '4px solid #ff9800'
-            }}>
-              <div style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '5px' }}>Con Excusa</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ff9800' }}>
-                {estadisticasGenerales.conExcusa}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: isDarkMode ? '#999' : '#999' }}>
-                ({((estadisticasGenerales.conExcusa / estadisticasGenerales.total) * 100).toFixed(1)}%)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Asistencia por Curso */}
-        <div style={{
-          background: isDarkMode ? '#2d2d2d' : 'white',
-          padding: '25px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          marginBottom: '30px',
-          border: isDarkMode ? '1px solid #3d3d3d' : 'none',
-          overflowX: 'auto'
-        }}>
-          <h3 style={{ marginTop: 0, color: '#2b7a78', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <AcademicCapIcon style={{ width: '24px', height: '24px' }} />
-            Asistencia por Curso
-          </h3>
-          
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: isDarkMode ? '2px solid #3d3d3d' : '2px solid #e0e0e0' }}>
-                <th style={{ textAlign: 'left', padding: '12px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#2b7a78' }}>Curso</th>
-                <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#2b7a78' }}>Presentes</th>
-                <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#2b7a78' }}>Ausentes</th>
-                <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#2b7a78' }}>Con Excusa</th>
-                <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#2b7a78' }}>Tasa (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {asistenciasPorCurso.map((curso, idx) => (
-                <tr key={idx} style={{ borderBottom: isDarkMode ? '1px solid #3d3d3d' : '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '12px', color: isDarkMode ? '#fff' : '#333' }}>{curso.curso}</td>
-                  <td style={{ textAlign: 'center', padding: '12px', color: '#4facfe', fontWeight: 'bold' }}>
-                    {curso.presente}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '12px', color: '#f5576c', fontWeight: 'bold' }}>
-                    {curso.ausente}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '12px', color: '#ff9800', fontWeight: 'bold' }}>
-                    {curso.excusa}
-                  </td>
-                  <td style={{ textAlign: 'center', padding: '12px' }}>
-                    <div style={{
-                      background: parseFloat(curso.porcentaje) >= 80 ? '#e8f5e9' : '#ffebee',
-                      color: parseFloat(curso.porcentaje) >= 80 ? '#4caf50' : '#f44336',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      display: 'inline-block'
-                    }}>
-                      {curso.porcentaje}%
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ✅ ESTUDIANTES CON RETRASO */}
-        {estudiantesConRetraso.length > 0 && (
-          <div style={{
-            background: isDarkMode ? '#2d2d2d' : '#fff8e1',
-            padding: '25px',
-            borderRadius: '12px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            border: isDarkMode ? '2px solid #FFD700' : '2px solid #FFD700',
-            marginBottom: '30px'
-          }}>
-            <h3 style={{ marginTop: 0, color: '#FF8C00', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <svg style={{ width: '24px', height: '24px' }} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-              </svg>
-              Estudiantes que Llegan Tarde
-            </h3>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: isDarkMode ? '2px solid #FFD700' : '2px solid #FFD700' }}>
-                  <th style={{ textAlign: 'left', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>#</th>
-                  <th style={{ textAlign: 'left', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Estudiante</th>
-                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Presentes</th>
-                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>Con Retraso</th>
-                  <th style={{ textAlign: 'center', padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>% Retrasos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {estudiantesConRetraso.map((estudiante, idx) => (
-                  <tr key={idx} style={{ borderBottom: isDarkMode ? '1px solid #555' : '1px solid #FFE082' }}>
-                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#FF8C00' }}>
-                      {idx + 1}
-                    </td>
-                    <td style={{ padding: '12px', color: isDarkMode ? '#fff' : '#333' }}>
-                      <div style={{ fontWeight: '600' }}>{estudiante.nombre}</div>
-                      <div style={{ fontSize: '0.85rem', color: isDarkMode ? '#aaa' : '#999' }}>{estudiante.cedula}</div>
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '12px', color: '#4facfe', fontWeight: 'bold' }}>
-                      {estudiante.presente}
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '12px', color: '#FFD700', fontWeight: 'bold' }}>
-                      {estudiante.conRetraso}
-                    </td>
-                    <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <div style={{
-                        background: '#FFE082',
-                        color: '#FF8C00',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontWeight: 'bold',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <svg style={{ width: '14px', height: '14px' }} fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
-                        </svg>
-                        {estudiante.porcentajeRetraso}%
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Estudiantes con Baja Asistencia */}
-        {estudiantesBajaAsistencia.length > 0 && (
-          <div style={{
-            background: isDarkMode ? '#2d2d2d' : '#ffebee',
-            padding: '25px',
-            borderRadius: '12px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            border: isDarkMode ? '2px solid #f5576c' : '2px solid #f5576c',
-            marginBottom: '30px'
-          }}>
-            <h3 style={{ marginTop: 0, color: '#c62828', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <ExclamationTriangleIcon style={{ width: '24px', height: '24px' }} />
-              Estudiantes con Baja Asistencia (&lt;80%)
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
-              {estudiantesBajaAsistencia.map((estudiante, idx) => (
-                <div key={idx} style={{
-                  background: isDarkMode ? '#333' : 'white',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #f5576c'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isDarkMode ? '#fff' : '#333' }}>
-                    {estudiante.nombre}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666', marginBottom: '10px' }}>
-                    Cédula: {estudiante.cedula}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: isDarkMode ? '#aaa' : '#666' }}>
-                    <span>Presente: <strong>{estudiante.presente}</strong></span>
-                    <span>Ausente: <strong>{estudiante.ausente}</strong></span>
-                    <span>Excusa: <strong>{estudiante.excusa}</strong></span>
-                  </div>
-                  <div style={{
-                    marginTop: '10px',
-                    padding: '8px',
-                    background: '#ffe0e0',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    color: '#c62828'
-                  }}>
-                    Asistencia: {estudiante.porcentaje}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Botón Regresar */}
-        <div style={{ textAlign: 'center', marginTop: '30px' }}>
           <button
-            onClick={() => navigate('/home')}
-            style={{
-              padding: '12px 30px',
-              backgroundColor: '#2b7a78',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              transition: 'all 0.3s',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#1f5954';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#2b7a78';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(0)';
-            }}
+            onClick={() => setRecarga((n) => n + 1)}
+            disabled={cargando}
+            style={{ padding: '10px 20px', backgroundColor: '#585858', color: 'white', border: 'none', borderRadius: '6px', cursor: cargando ? 'not-allowed' : 'pointer', opacity: cargando ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <HomeIcon style={{ width: '20px', height: '20px' }} />
-            Regresar al Inicio
+            <RefreshCw size={18} /> Actualizar
           </button>
+        </div>
+
+        {/* Filtros */}
+        <div style={{ ...tarjeta, marginBottom: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', alignItems: 'start' }}>
+          <label style={etiqueta}>
+            Curso
+            <select aria-label="Curso" value={unidad} onChange={(e) => setUnidad(e.target.value)} style={campo}>
+              <option value="">Todos mis cursos</option>
+              {unidades.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+            </select>
+          </label>
+          <label style={etiqueta}>
+            Desde
+            <input type="date" aria-label="Desde" value={desde} max={hasta || hoy} onChange={(e) => setDesde(e.target.value)} style={campo} />
+          </label>
+          <label style={etiqueta}>
+            Hasta
+            <input type="date" aria-label="Hasta" value={hasta} min={desde || undefined} max={hoy} onChange={(e) => setHasta(e.target.value)} style={campo} />
+          </label>
+          {(unidad || desde || hasta) && (
+            <div style={etiqueta}>
+              <span aria-hidden="true">&nbsp;</span>
+              <button onClick={() => { setUnidad(''); setDesde(''); setHasta(''); }}
+                style={{ height: '40px', padding: '0 14px', borderRadius: '8px', background: 'transparent', border: `1px solid ${VERDE}`, color: VERDE, fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', width: '100%' }}>
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ position: 'relative', opacity: cargando ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+          {cargando && (
+            <div role="status" style={{ position: 'absolute', inset: 0, zIndex: 5, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '120px', pointerEvents: 'none' }}>
+              <span aria-label="Cargando" className="girar-carga" style={{ width: '56px', height: '56px', borderRadius: '50%', boxSizing: 'border-box', border: `6px solid ${oscuro ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`, borderTopColor: VERDE }} />
+            </div>
+          )}
+
+          {/* Tarjetas de resumen */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            {kpis.map((k) => (
+              <div key={k.titulo} style={{ ...tarjeta, padding: '18px', borderTop: `4px solid ${k.color}` }}>
+                <div style={{ fontSize: '0.85rem', color: color.tenue, fontWeight: 600 }}>{k.titulo}</div>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: k.color, lineHeight: 1.2 }}>{k.valor}</div>
+                <div style={{ fontSize: '0.78rem', color: color.tenue }}>{k.detalle}</div>
+              </div>
+            ))}
+          </div>
+
+          {sinDatos ? (
+            <div style={{ ...tarjeta, textAlign: 'center', padding: '50px 20px', color: color.tenue }}>
+              <h3 style={{ margin: '0 0 8px', color: color.texto }}>Todavía no hay asistencias para mostrar</h3>
+              <p style={{ margin: 0 }}>Cuando se registren clases de este curso y período, aquí verás las gráficas y los consejos.</p>
+            </div>
+          ) : (
+            <>
+              {/* Gráficas */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+                <Grafica titulo="Distribución de estados" tarjeta={tarjeta} color={color}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={distribucion} dataKey="valor" nameKey="nombre" innerRadius={60} outerRadius={95} paddingAngle={2} stroke="none">
+                        {distribucion.map((d) => <Cell key={d.nombre} fill={d.color} />)}
+                      </Pie>
+                      <Tooltip {...tooltip} />
+                      <Legend wrapperStyle={{ color: color.tenue }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Grafica>
+
+                <Grafica titulo="Tendencia de asistencia por clase" nota="% de presentes en cada clase" tarjeta={tarjeta} color={color}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={datos.tendencia} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gTendencia" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={VERDE} stopOpacity={0.55} />
+                          <stop offset="95%" stopColor={VERDE} stopOpacity={0.03} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={color.rejilla} />
+                      <XAxis dataKey="fecha" tickFormatter={fechaCorta} stroke={color.tenue} fontSize={12} />
+                      <YAxis domain={[0, 100]} unit="%" stroke={color.tenue} fontSize={12} />
+                      <Tooltip {...tooltip} labelFormatter={(f) => fechaLarga(String(f))} formatter={(v) => [`${v}%`, 'Asistencia']} />
+                      <Area type="monotone" dataKey="tasa" stroke={VERDE} strokeWidth={2.5} fill="url(#gTendencia)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Grafica>
+
+                <Grafica titulo="Asistencia por día de la semana" nota="¿Qué día se falta más?" tarjeta={tarjeta} color={color}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={datos.porDia} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={color.rejilla} />
+                      <XAxis dataKey="dia" stroke={color.tenue} fontSize={12} />
+                      <YAxis domain={[0, 100]} unit="%" stroke={color.tenue} fontSize={12} />
+                      <Tooltip {...tooltip} formatter={(v) => [`${v}%`, 'Asistencia']} cursor={{ fill: oscuro ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }} />
+                      <Bar dataKey="tasa" radius={[6, 6, 0, 0]}>
+                        {datos.porDia.map((d) => <Cell key={d.dia} fill={d.tasa >= 80 ? VERDE : d.tasa >= 60 ? NARANJA : ROJO} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Grafica>
+
+                {datos.porCurso.length > 1 && (
+                  <Grafica titulo="Comparación entre cursos" nota="% de asistencia de cada curso o grupo" tarjeta={tarjeta} color={color}>
+                    <ResponsiveContainer width="100%" height={Math.max(220, datos.porCurso.length * 46)}>
+                      <BarChart data={datos.porCurso} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={color.rejilla} horizontal={false} />
+                        <XAxis type="number" domain={[0, 100]} unit="%" stroke={color.tenue} fontSize={12} />
+                        <YAxis type="category" dataKey="nombre" width={150} stroke={color.tenue} fontSize={11} />
+                        <Tooltip {...tooltip} formatter={(v) => [`${v}%`, 'Asistencia']} cursor={{ fill: oscuro ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }} />
+                        <Bar dataKey="tasa" radius={[0, 6, 6, 0]}>
+                          {datos.porCurso.map((c) => <Cell key={c.unidadId} fill={(c.tasa ?? 0) >= 80 ? VERDE : (c.tasa ?? 0) >= 60 ? NARANJA : ROJO} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Grafica>
+                )}
+              </div>
+
+              {datos.mapa && datos.mapa.fechas.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <Grafica titulo="Mapa de asistencia por estudiante" nota="Cada fila es un estudiante y cada columna una clase. Los que más faltan, arriba." tarjeta={tarjeta} color={color}>
+                    <MapaDeCalor mapa={datos.mapa} oscuro={oscuro} />
+                  </Grafica>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Consejos */}
+          <h3 style={{ margin: '8px 0 6px', color: color.texto }}>Consejos para ti</h3>
+          <p style={{ margin: '0 0 16px', color: color.tenue, fontSize: '0.88rem' }}>
+            La campanita solo te avisa de los casos críticos (3 o más faltas en una misma semana). Aquí está el detalle completo.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+            <PanelConsejos
+              titulo="Recordatorios" icono={<AlertTriangle size={20} />} acento={ROJO} oscuro={oscuro} tarjeta={tarjeta} color={color}
+              vacio="Nadie necesita un recordatorio ahora. ¡Buen trabajo!"
+              items={datos.consejos.recordatorios.map((r) => ({ clave: `${r.unidadId}-${r.cedula}`, nombre: r.nombre, curso: r.curso, etiqueta: r.motivo, detalle: r.detalle, consejo: null }))}
+            />
+            <PanelConsejos
+              titulo="Llegadas tarde" icono={<Clock size={20} />} acento={NARANJA} oscuro={oscuro} tarjeta={tarjeta} color={color}
+              vacio="Nadie llega tarde de forma recurrente."
+              items={datos.consejos.tardanzas.map((r) => ({ clave: `${r.unidadId}-${r.cedula}`, nombre: r.nombre, curso: r.curso, etiqueta: `${r.veces} veces`, detalle: r.detalle, consejo: r.consejo }))}
+            />
+            <PanelConsejos
+              titulo="Reconocimientos" icono={<Trophy size={20} />} acento={VERDE} oscuro={oscuro} tarjeta={tarjeta} color={color}
+              vacio="Aún no hay rachas para reconocer."
+              items={datos.consejos.incentivos.map((r) => ({ clave: `${r.unidadId}-${r.cedula}`, nombre: r.nombre, curso: r.curso, etiqueta: r.insignia, detalle: r.detalle, consejo: null }))}
+            />
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+function Grafica({ titulo, nota, tarjeta, color, children }: { titulo: string; nota?: string; tarjeta: React.CSSProperties; color: { texto: string; tenue: string }; children: ReactNode }) {
+  return (
+    <div style={tarjeta}>
+      <h3 style={{ margin: 0, color: color.texto, fontSize: '1.05rem' }}>{titulo}</h3>
+      {nota && <p style={{ margin: '2px 0 10px', color: color.tenue, fontSize: '0.8rem' }}>{nota}</p>}
+      {!nota && <div style={{ height: '10px' }} />}
+      {children}
+    </div>
+  );
+}
+
+const COLOR_CELDA = { P: VERDE, A: ROJO, E: NARANJA, '-': '' } as const;
+const TEXTO_CELDA = { P: 'Presente', A: 'Ausente', E: 'Con excusa', '-': 'Sin registro' } as const;
+
+function MapaDeCalor({ mapa, oscuro }: { mapa: MapaCalor; oscuro: boolean }) {
+  const vacio = oscuro ? '#3a3a3a' : '#e9e9e9';
+  const tenue = oscuro ? '#aaa' : '#666';
+  const [busqueda, setBusqueda] = useState('');
+  const buscado = busqueda.trim().toLowerCase();
+  const filas = buscado
+    ? mapa.filas.filter((f) => f.nombre.toLowerCase().includes(buscado) || f.cedula.includes(buscado))
+    : mapa.filas;
+  const fechas = mapa.fechas;
+  const FILA = 25; // alto de cada fila: se ven 10 y el resto se desplaza
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+        <input
+          type="search"
+          aria-label="Buscar estudiante"
+          placeholder="Buscar estudiante por nombre o cédula…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: `1px solid ${oscuro ? '#3d3d3d' : '#d0d0d0'}`, background: oscuro ? '#1e1e1e' : 'white', color: oscuro ? '#fff' : '#333', fontSize: '0.88rem', width: 'min(360px, 100%)', boxSizing: 'border-box' }}
+        />
+        <span style={{ color: tenue, fontSize: '0.8rem', marginLeft: 'auto' }}>
+          {filas.length} {filas.length === 1 ? 'estudiante' : 'estudiantes'}{filas.length > 10 ? ' · desplázate para ver el resto' : ''}
+        </span>
+      </div>
+      {filas.length === 0 && <p style={{ margin: '8px 0', color: tenue, fontSize: '0.88rem' }}>Ningún estudiante coincide con la búsqueda.</p>}
+      <div style={{ overflow: 'auto', maxHeight: `${28 + FILA * 10}px`, paddingBottom: '6px' }}>
+        <table style={{ borderCollapse: 'separate', borderSpacing: '6px 3px', fontSize: '0.72rem' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', color: tenue, fontWeight: 600, position: 'sticky', left: 0, top: 0, zIndex: 2, background: oscuro ? '#2d2d2d' : 'white', padding: '0 8px 4px 0', minWidth: '180px' }}>Estudiante</th>
+              {fechas.map((f) => <th key={f} style={{ color: tenue, fontWeight: 500, padding: '0 0 4px', minWidth: '32px', position: 'sticky', top: 0, zIndex: 1, background: oscuro ? '#2d2d2d' : 'white' }}>{fechaCorta(f)}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((fila) => (
+              <tr key={fila.cedula}>
+                <td title={`C.C. ${fila.cedula}`} style={{ position: 'sticky', left: 0, background: oscuro ? '#2d2d2d' : 'white', color: oscuro ? '#ddd' : '#333', padding: '0 8px 0 0', whiteSpace: 'nowrap', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {fila.nombre}
+                </td>
+                {fila.celdas.map((c, i) => (
+                  <td key={i} title={`${fila.nombre} · ${fechaLarga(fechas[i])}: ${TEXTO_CELDA[c]}`}
+                    style={{ width: '32px', height: '22px', borderRadius: '4px', background: COLOR_CELDA[c] || vacio, opacity: c === '-' ? 0.7 : 1 }} />
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '10px', fontSize: '0.78rem', color: tenue }}>
+        {(['P', 'A', 'E', '-'] as const).map((c) => (
+          <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: COLOR_CELDA[c] || vacio, display: 'inline-block' }} /> {TEXTO_CELDA[c]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface ItemConsejo { clave: string; nombre: string; curso: string; etiqueta: string; detalle: string; consejo: string | null }
+
+function PanelConsejos({ titulo, icono, acento, oscuro, tarjeta, color, vacio, items }: {
+  titulo: string; icono: ReactNode; acento: string; oscuro: boolean; tarjeta: React.CSSProperties;
+  color: { texto: string; tenue: string; borde: string }; vacio: string; items: ItemConsejo[];
+}) {
+  return (
+    <div style={{ ...tarjeta, borderTop: `4px solid ${acento}` }}>
+      <h3 style={{ margin: '0 0 14px', color: acento, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem' }}>
+        {icono} {titulo} {items.length > 0 && <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: color.tenue, fontWeight: 600 }}>{items.length}</span>}
+      </h3>
+      {items.length === 0 ? (
+        <p style={{ margin: 0, color: color.tenue, fontSize: '0.9rem' }}>{vacio}</p>
+      ) : (
+        <div style={{ display: 'grid', gap: '12px', maxHeight: '460px', overflowY: 'auto', paddingRight: '4px' }}>
+          {items.map((it) => (
+            <div key={it.clave} style={{ border: `1px solid ${color.borde}`, borderRadius: '10px', padding: '12px', background: oscuro ? '#252525' : '#fafafa' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}>
+                <strong style={{ color: color.texto, fontSize: '0.92rem' }}>{it.nombre}</strong>
+                <span style={{ color: acento, fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{it.etiqueta}</span>
+              </div>
+              <div style={{ color: color.tenue, fontSize: '0.78rem' }}>{it.curso}</div>
+              <p style={{ margin: '6px 0 0', color: oscuro ? '#ddd' : '#444', fontSize: '0.85rem' }}>{it.detalle}</p>
+              {it.consejo && <p style={{ margin: '6px 0 0', color: color.tenue, fontSize: '0.82rem', fontStyle: 'italic' }}>{it.consejo}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -9,6 +9,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 // ============================================
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ProtectedRoute } from './ProtectedRoute';
+import { PantallaCarga } from '../components/PantallaCarga';
+import { DocumentoLegalPage } from '../pages/DocumentoLegalPage';
 
 // ============================================
 // IMPORTAR PÁGINAS PÚBLICAS
@@ -21,19 +23,18 @@ import { NotFoundPage } from '../pages/NotFoundPage';
 // ============================================
 import { HomePage } from '../pages/HomePage';
 import { AsistenciasPage } from '../pages/assists';
-import { EditarAsistenciaPage } from '../pages/EditAssistsPage';
-import { ReportesPage } from '../pages/ReportesPage';
 
 // ============================================
-// ✨ IMPORTACIONES PARA HORARIOS
+// IMPORTACIONES PARA HORARIOS
 // ============================================
-import { GestionHorariosFirebase } from '../pages/GestionHorariosFirebase';
+import { MiHorarioPage } from '../pages/MiHorarioPage';
+import { RegistroPage } from '../pages/RegistroPage';
+import { AdminUsuariosPage } from '../pages/AdminUsuariosPage';
 
 // ============================================
-// 📊 IMPORTACIONES PARA ESTADÍSTICAS Y ANÁLISIS
+// IMPORTACIONES PARA ESTADÍSTICAS Y ANÁLISIS
 // ============================================
 import { EstadisticasPage } from '../pages/EstadisticasPage';
-import { AnalisisPage } from '../pages/AnalisisPage';
 
 /**
  * Componente de rutas principal
@@ -46,12 +47,12 @@ import { AnalisisPage } from '../pages/AnalisisPage';
  * RUTAS PROTEGIDAS:
  * - /home → Dashboard principal con horarios editables
  * - /asistencias → Gestión de asistencias
- * - /asistencias/editar/:id → Editar asistencia específica
- * - /reportes → Generación de reportes
+ * - /asistencias/editar/:id → ya no existe: editar es una ventana flotante (redirige a /asistencias)
+ * - /reportes → ya no existe: el reporte es una ventana flotante (redirige a /asistencias)
  * - /horario-completo → Ver horario semanal completo
  * - /gestion-horarios → Gestionar horarios (profesores)
  * - /estadisticas → Panel de estadísticas de asistencias
- * - /analisis → Análisis avanzado de asistencias
+ * - /analisis → ya no existe: se unió a /estadisticas
  * - * → Página 404
  */
 function AppRoutes() {
@@ -69,40 +70,7 @@ function AppRoutes() {
 
   // Pantalla de carga mientras se verifica la autenticación
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '20px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            fontSize: '2rem',
-            marginBottom: '20px',
-            animation: 'spin 1s linear infinite'
-          }}>
-            🔄
-          </div>
-          <p style={{ margin: 0, fontSize: '1.2rem', color: '#667eea', fontWeight: '600' }}>
-            Cargando...
-          </p>
-        </div>
-        <style>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
+    return <PantallaCarga message="Cargando..." />;
   }
 
   return (
@@ -159,27 +127,13 @@ function AppRoutes() {
           />
 
           {/* Editar Asistencia por ID */}
-          <Route 
-            path="/asistencias/editar/:id" 
-            element={
-              <ProtectedRoute>
-                <EditarAsistenciaPage />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/asistencias/editar/:id" element={<Navigate to="/asistencias" replace />} />
 
-          {/* Reportes */}
-          <Route 
-            path="/reportes" 
-            element={
-              <ProtectedRoute>
-                <ReportesPage />
-              </ProtectedRoute>
-            } 
-          />
+          {/* Reportes: ahora es una ventana flotante en Inicio y en Todas las asistencias */}
+          <Route path="/reportes" element={<Navigate to="/asistencias" replace />} />
 
           {/* ============================================ */}
-          {/* ✨ RUTAS DE HORARIOS (PROTEGIDAS) */}
+          {/* RUTAS DE HORARIOS (PROTEGIDAS) */}
           {/* ============================================ */}
 
           {/* Ver Horario Completo Semanal */}
@@ -210,13 +164,37 @@ function AppRoutes() {
             path="/gestion-horarios" 
             element={
               <ProtectedRoute>
-                <GestionHorariosFirebase />
+                <MiHorarioPage />
               </ProtectedRoute>
             } 
           />
 
+          {/* Antiguas rutas: ahora son pestañas de "Mi horario" */}
+          <Route path="/mis-cursos" element={<Navigate to="/home" replace />} />
+          <Route path="/historial-horarios" element={<Navigate to="/gestion-horarios?seccion=historial" replace />} />
+
+          {/* Registro: para quien inició sesión pero aún no es un docente activo (no lleva menú lateral) */}
+          <Route path="/registro" element={<RegistroPage />} />
+          {/* Textos legales: públicos, se pueden leer sin iniciar sesión */}
+          <Route path="/terminos" element={<DocumentoLegalPage id="terminos" />} />
+          <Route path="/privacidad" element={<DocumentoLegalPage id="privacidad" />} />
+
+          {/* Administración de docentes (solo administradores; lo valida el servidor) */}
+          <Route 
+            path="/admin/usuarios" 
+            element={
+              <ProtectedRoute>
+                <AdminUsuariosPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* El perfil ahora es una ventana flotante en el header */}
+          <Route path="/perfil" element={<Navigate to="/home" replace />} />
+
+
           {/* ============================================ */}
-          {/* 📊 RUTAS DE ESTADÍSTICAS Y ANÁLISIS */}
+          {/* RUTAS DE ESTADÍSTICAS Y ANÁLISIS */}
           {/* ============================================ */}
 
           {/* Estadísticas de Asistencias */}
@@ -249,14 +227,7 @@ function AppRoutes() {
             
             Nota: Similar a Power BI, muy completo
           */}
-          <Route 
-            path="/analisis" 
-            element={
-              <ProtectedRoute>
-                <AnalisisPage />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/analisis" element={<Navigate to="/estadisticas" replace />} />
 
           {/* ============================================ */}
           {/* RUTA 404 - Página no encontrada */}

@@ -1,12 +1,13 @@
 // src/pages/GestionHorariosFirebase.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import horarioApiService from '../services/horarioApiService';
-import type { Course, ScheduleClass } from '../services/horarioApiService';
+import type { Course } from '../services/horarioApiService';
 import type { ScheduleClass as ScheduleType } from '../services/horarioApiService';
 import { Toast } from '../components/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Calendar, Plus, Trash2, Save, X } from 'lucide-react';
+import { Calendar, CalendarDays, Plus, Trash2, Save, Upload, BookOpen, Users, Pencil, Clock, MapPin } from 'lucide-react';
+import { ImportarHorarioModal } from '../components/ImportarHorarioModal';
+import { useColumnas } from '../utils/useColumnas';
 import { auth } from '../firebaseConfig';
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -17,8 +18,27 @@ const HORAS_DISPONIBLES = [
 
 type Vista = 'lista' | 'editar' | 'visualizar';
 
+/** Botones de la barra de acciones: mismo alto y ancho para todos, en una sola línea. */
+const botonAccion = (fondo: string, color: string): React.CSSProperties => ({
+  flex: '0 0 auto',
+  width: '200px',
+  height: '42px',
+  padding: '0 16px',
+  background: fondo,
+  color,
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '0.95rem',
+  fontWeight: 600,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  whiteSpace: 'nowrap',
+});
+
 export function GestionHorariosFirebase() {
-  const navigate = useNavigate();
   const user = auth.currentUser;
   
   const [vista, setVista] = useState<Vista>('lista');
@@ -26,6 +46,7 @@ export function GestionHorariosFirebase() {
   const [cursoSeleccionado, setCursoSeleccionado] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importarAbierto, setImportarAbierto] = useState(false);
   
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -73,7 +94,7 @@ export function GestionHorariosFirebase() {
       // USANDO NUEVA API
       await horarioApiService.actualizarScheduleCurso(courseId, schedule);
       await cargarCursos();
-      showNotification('✅ Horario guardado correctamente', 'success');
+      showNotification('Horario guardado correctamente', 'success');
       setVista('lista');
       setCursoSeleccionado(null);
     } catch (error: any) {
@@ -102,48 +123,37 @@ export function GestionHorariosFirebase() {
         />
       )}
 
-      <div style={{
-        minHeight: 'calc(100vh - 70px)',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px'
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          
-          {/* Header */}
-          <div style={{
-            background: 'white',
-            borderRadius: '20px',
-            padding: '30px',
-            marginBottom: '30px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <Calendar size={32} color="#667eea" />
-                <div>
-                  <h1 style={{ margin: 0, fontSize: '2rem', color: '#2b2b2b' }}>
-                    Gestión de Horarios
-                  </h1>
-                  <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '1rem' }}>
-                    {cursos.length} {cursos.length === 1 ? 'curso' : 'cursos'} configurados
-                  </p>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => navigate('/home')}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#9e9e9e',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  fontWeight: '600'
-                }}
-              >
-                ← Volver al Dashboard
+      <ImportarHorarioModal
+        abierto={importarAbierto}
+        onCerrar={() => setImportarAbierto(false)}
+        onImportado={(mensaje) => {
+          setImportarAbierto(false);
+          cargarCursos();
+          showNotification(mensaje, 'success');
+        }}
+      />
+
+      <div>
+        <div>
+          {/* Encabezado: título con icono y descripción a la izquierda, acciones a la derecha */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '30px' }}>
+            <div>
+              <h2 style={{ margin: 0, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CalendarDays size={28} />
+                Mi horario
+              </h2>
+              <p style={{ margin: '5px 0 0 0', color: 'var(--text-secondary)' }}>
+                {cursos.length} {cursos.length === 1 ? 'curso configurado' : 'cursos configurados'} en tu horario semanal
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+              {vista === 'lista' && cursos.length > 0 && (
+                <button onClick={() => setVista('visualizar')} style={botonAccion('var(--color-uni-suave)', 'var(--color-primary)')}>
+                  <Calendar size={18} /> Ver horario completo
+                </button>
+              )}
+              <button onClick={() => setImportarAbierto(true)} style={botonAccion('var(--color-primary)', 'white')}>
+                <Upload size={18} /> Subir horario
               </button>
             </div>
           </div>
@@ -153,7 +163,6 @@ export function GestionHorariosFirebase() {
             <ListaCursos
               cursos={cursos}
               onSeleccionar={handleSeleccionarCurso}
-              onVerHorarioCompleto={() => setVista('visualizar')}
             />
           )}
 
@@ -185,40 +194,16 @@ export function GestionHorariosFirebase() {
 interface ListaCursosProps {
   cursos: Course[];
   onSeleccionar: (curso: Course) => void;
-  onVerHorarioCompleto: () => void;
 }
 
-function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCursosProps) {
+function ListaCursos({ cursos, onSeleccionar }: ListaCursosProps) {
+  const columnas = useColumnas();
   return (
     <div>
-      {/* Botón para ver horario completo */}
-      {cursos.length > 0 && (
-        <div style={{ marginBottom: '20px', textAlign: 'right' }}>
-          <button
-            onClick={onVerHorarioCompleto}
-            style={{
-              padding: '12px 24px',
-              background: '#2196F3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Calendar size={20} />
-            Ver Horario Completo
-          </button>
-        </div>
-      )}
-
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+        gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))`,
+        gridAutoRows: '1fr',
         gap: '20px'
       }}>
         {cursos.map((curso, index) => {
@@ -235,7 +220,10 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                 boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                 borderLeft: `5px solid ${color}`,
                 cursor: 'pointer',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-5px)';
@@ -255,15 +243,20 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                 <div style={{
                   background: `${color}20`,
                   padding: '12px',
-                  borderRadius: '10px'
+                  borderRadius: '10px',
+                  flexShrink: 0
                 }}>
-                  📚
+                  <BookOpen size={22} color={color} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#2b2b2b' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* El título siempre ocupa 2 líneas de alto: así todas las tarjetas quedan alineadas */}
+                  <h3 title={curso.nameCourse} style={{
+                    margin: 0, fontSize: '1.3rem', color: '#2b2b2b', lineHeight: 1.3, minHeight: '2.6em',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere'
+                  }}>
                     {curso.nameCourse}
                   </h3>
-                  <p style={{ margin: '3px 0 0 0', color: '#888', fontSize: '0.9rem' }}>
+                  <p title={curso.group} style={{ margin: '3px 0 0 0', color: '#888', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     Grupo: {curso.group}
                   </p>
                 </div>
@@ -277,15 +270,18 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                 fontSize: '0.9rem',
                 color: '#666'
               }}>
-                <div>📚 {totalClases} {totalClases === 1 ? 'clase' : 'clases'} programadas</div>
-                <div style={{ marginTop: '5px' }}>
-                  👥 {curso.estudianteID?.length || 0} estudiantes
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={15} /> {totalClases} {totalClases === 1 ? 'clase programada' : 'clases programadas'}
+                </div>
+                <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={15} /> {curso.estudianteID?.length || 0} estudiantes
                 </div>
               </div>
 
               <button
                 onClick={() => onSeleccionar(curso)}
                 style={{
+                  marginTop: 'auto',
                   width: '100%',
                   padding: '12px',
                   background: color,
@@ -308,7 +304,7 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
                   e.currentTarget.style.opacity = '1';
                 }}
               >
-                ✏️ Editar Horario
+                <Pencil size={16} /> Editar horario
               </button>
             </div>
           );
@@ -328,7 +324,7 @@ function ListaCursos({ cursos, onSeleccionar, onVerHorarioCompleto }: ListaCurso
             No tienes cursos creados
           </h2>
           <p style={{ color: '#999', marginTop: '10px' }}>
-            Los cursos deben ser creados desde el sistema principal
+            Crea tu primer curso desde el Inicio (tarjeta “Nuevo curso”) o sube tu horario de Academusoft
           </p>
         </div>
       )}
@@ -664,9 +660,10 @@ function VisualizarHorarioCompleto({ cursos, onVolver }: VisualizarHorarioComple
                       <div style={{ fontWeight: '600', fontSize: '1.1rem', color: '#2b2b2b' }}>
                         {clase.curso}
                       </div>
-                      <div style={{ color: '#666', marginTop: '5px' }}>
-                        ⏰ {clase.iniTime} - {clase.endTime} • 📍 {clase.classroom}
-                        {clase.group && ` • 👥 ${clase.group}`}
+                      <div style={{ color: '#666', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {clase.iniTime} - {clase.endTime}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><MapPin size={14} /> {clase.classroom}</span>
+                        {clase.group && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Users size={14} /> {clase.group}</span>}
                       </div>
                     </div>
                   );

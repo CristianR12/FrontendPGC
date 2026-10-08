@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile
 } from "firebase/auth";
 import { Toast } from "./Toast";
@@ -47,13 +48,8 @@ export function Login() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Usuario autenticado:", userCredential.user.email);
+      console.log("Usuario autenticado:", userCredential.user.email);
 
-      const user = userCredential.user;
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      console.log("🔐 Token guardado:", token);
       showNotification(`¡Bienvenido ${userCredential.user.email}!`, 'success');
 
       // Resetear intentos fallidos al iniciar sesión correctamente
@@ -64,7 +60,7 @@ export function Login() {
       }, 1500);
 
     } catch (err: any) {
-      console.error("❌ Error en login:", err);
+      console.error("Error en login:", err);
 
       // Incrementar intentos fallidos
       setFailedAttempts(prev => prev + 1);
@@ -121,18 +117,20 @@ export function Login() {
     try {
       // Crear usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("✅ Usuario registrado:", userCredential.user.email);
+      console.log("Usuario registrado:", userCredential.user.email);
 
       // Actualizar el perfil con el nombre
       await updateProfile(userCredential.user, {
         displayName: displayName.trim()
       });
 
-      const user = userCredential.user;
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
+      // El servidor exige correo verificado para dar acceso: se envía el enlace de verificación
+      try {
+        await sendEmailVerification(userCredential.user);
+      } catch (errVerificacion) {
+        console.error("No se pudo enviar el correo de verificación:", errVerificacion);
+      }
 
-      console.log("🔐 Token guardado:", token);
       showNotification(`¡Cuenta creada exitosamente! Bienvenido ${displayName}`, 'success');
 
       setTimeout(() => {
@@ -140,7 +138,7 @@ export function Login() {
       }, 1500);
 
     } catch (err: any) {
-      console.error("❌ Error en registro:", err);
+      console.error("Error en registro:", err);
 
       let errorMessage = "Error al crear la cuenta";
 
@@ -194,10 +192,10 @@ export function Login() {
 
       await sendPasswordResetEmail(auth, emailToUse, actionCodeSettings);
 
-      console.log("✅ Correo de recuperación enviado a:", emailToUse);
+      console.log("Correo de recuperación enviado a:", emailToUse);
 
       showNotification(
-        `📧 Correo enviado exitosamente a ${emailToUse}. Revisa tu bandeja de entrada y spam.`,
+        `Correo enviado exitosamente a ${emailToUse}. Revisa tu bandeja de entrada y spam.`,
         'success'
       );
 
@@ -207,7 +205,7 @@ export function Login() {
 
       setLoading(false);
     } catch (err: any) {
-      console.error("❌ Error al enviar correo de recuperación:", err);
+      console.error("Error al enviar correo de recuperación:", err);
 
       let errorMessage = "Error al enviar correo de recuperación";
 
@@ -239,13 +237,8 @@ export function Login() {
 
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log("✅ Usuario Google:", result.user.displayName);
+      console.log("Usuario Google:", result.user.displayName);
 
-      const user = result.user;
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      console.log("🔐 Token guardado:", token);
 
       showNotification(`¡Bienvenido ${result.user.displayName || result.user.email}!`, 'success');
 
@@ -257,7 +250,7 @@ export function Login() {
       }, 1500);
 
     } catch (err: any) {
-      console.error("❌ Error en login con Google:", err);
+      console.error("Error en login con Google:", err);
       showNotification("No se pudo iniciar sesión con Google", 'error');
       setLoading(false);
     }
@@ -314,7 +307,7 @@ export function Login() {
             boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
           }}>
             <h3 style={{ marginTop: 0, marginBottom: '10px', color: '#2b2b2b' }}>
-              🔐 Recuperar Contraseña
+              Recuperar Contraseña
             </h3>
             <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
               Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
@@ -529,7 +522,7 @@ export function Login() {
               }}
             >
               {failedAttempts >= 3
-                ? '🔓 ¿Olvidaste tu contraseña? Recupérala aquí'
+                ? '¿Olvidaste tu contraseña? Recupérala aquí'
                 : '¿Olvidaste tu contraseña?'
               }
             </button>
@@ -595,7 +588,7 @@ export function Login() {
                   onClick={toggleMode}
                   disabled={loading}
                   style={{
-                    all: 'unset', // ❗️Resetea TODAS las propiedades por defecto del botón
+                    all: 'unset', // Resetea TODAS las propiedades por defecto del botón
                     cursor: loading ? 'not-allowed' : 'pointer',
                     color: '#2b7a78',
                     textDecoration: 'underline',

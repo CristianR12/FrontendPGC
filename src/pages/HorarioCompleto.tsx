@@ -1,9 +1,9 @@
 // src/pages/HorarioCompleto.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, ArrowLeft, User, Edit3, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, ArrowLeft, User, Edit3 } from 'lucide-react';
 import horarioApiService from '../services/horarioApiService';
-import type { Course, ScheduleClass } from '../services/horarioApiService';
+import type { Course } from '../services/horarioApiService';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CalendarioHorariosEditable } from '../components/CalendarioHorariosEditable';
 import { Toast } from '../components/Toast';
@@ -56,7 +56,7 @@ export function HorarioCompleto() {
     try {
       setLoading(true);
       
-      // 🔥 USAR QUERY EN LUGAR DE doc(db, 'person', uid)
+      // USAR QUERY EN LUGAR DE doc(db, 'person', uid)
       const personsRef = collection(db, 'person');
       const q = query(personsRef, where('profesorUID', '==', user!.uid), limit(1));
       const querySnapshot = await getDocs(q);
@@ -67,7 +67,7 @@ export function HorarioCompleto() {
         setUserType(data.type);
         setUserName(data.namePerson || user!.displayName || '');
         
-        console.log('✅ Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
+        console.log('Usuario encontrado:', data.namePerson, '- Tipo:', data.type);
         
         // Cargar horario según tipo - USANDO NUEVA API
         let cursosData: Course[];
@@ -78,7 +78,7 @@ export function HorarioCompleto() {
         }
         setCursos(cursosData);
       } else {
-        console.warn('⚠️ No se encontró documento en person para UID:', user!.uid);
+        console.warn('No se encontró documento en person para UID:', user!.uid);
         showNotification('Usuario no registrado en el sistema', 'error');
       }
     } catch (error) {
@@ -104,7 +104,7 @@ export function HorarioCompleto() {
           cursosData = await horarioApiService.getHorarioEstudiante();
         }
         setCursos(cursosData);
-        showNotification('✅ Horario actualizado', 'success');
+        showNotification('Horario actualizado', 'success');
         setVista('calendario');
       }
     } catch (error) {
@@ -191,8 +191,8 @@ export function HorarioCompleto() {
                   fontSize: '0.95rem',
                   color: isDarkMode ? '#aaa' : '#666'
                 }}>
-                  <span>📚 {cursos.length} {cursos.length === 1 ? 'curso' : 'cursos'}</span>
-                  <span>📅 {cursos.reduce((acc, c) => acc + (c.schedule?.length || 0), 0)} clases totales</span>
+                  <span>{cursos.length} {cursos.length === 1 ? 'curso' : 'cursos'}</span>
+                  <span>{cursos.reduce((acc, c) => acc + (c.schedule?.length || 0), 0)} clases totales</span>
                 </div>
               </div>
               
@@ -282,7 +282,7 @@ export function HorarioCompleto() {
                 marginBottom: '25px',
                 color: isDarkMode ? '#fff' : '#2b2b2b'
               }}>
-                📅 Vista Semanal
+                Vista Semanal
               </h2>
 
               <div style={{
@@ -437,7 +437,7 @@ export function HorarioCompleto() {
                 marginBottom: '15px', 
                 color: isDarkMode ? '#fff' : '#2b2b2b' 
               }}>
-                📚 Mis Cursos ({cursos.length})
+                Mis Cursos ({cursos.length})
               </h3>
               <div style={{
                 display: 'grid',

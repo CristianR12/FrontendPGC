@@ -1,6 +1,7 @@
 // src/pages/NotFoundPage.tsx
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
+import { SearchX } from 'lucide-react';
 
 export function NotFoundPage() {
   const navigate = useNavigate();
@@ -18,8 +19,8 @@ export function NotFoundPage() {
         textAlign: 'center',
         padding: '40px'
       }}>
-        <div style={{ fontSize: '8rem', marginBottom: '20px' }}>
-          🔍
+        <div style={{ marginBottom: '20px', opacity: 0.6 }}>
+          <SearchX size={120} strokeWidth={1.25} />
         </div>
         
         <h1 style={{ 
@@ -60,7 +61,7 @@ export function NotFoundPage() {
               cursor: 'pointer'
             }}
           >
-            🏠 Ir al Inicio
+            Ir al Inicio
           </button>
           
           <button

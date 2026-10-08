@@ -1,9 +1,10 @@
 // src/components/Toast.tsx
 import { useEffect } from 'react';
+import { CheckCircle2, XCircle, Info, AlertTriangle } from 'lucide-react';
 
 interface ToastProps {
   message: string;
-  type: 'success' | 'error' | 'info' | 'warning'; // ✅ se agrega "warning"
+  type: 'success' | 'error' | 'info' | 'warning'; // se agrega "warning"
   onClose: () => void;
   duration?: number;
 }
@@ -18,12 +19,12 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  // ✅ Se agrega estilo para "warning"
+  // Se agrega estilo para "warning"
   const colors = {
-    success: { bg: '#4CAF50', color: 'white', icon: '✅' },
-    error: { bg: '#f44336', color: 'white', icon: '❌' },
-    info: { bg: '#2196F3', color: 'white', icon: 'ℹ️' },
-    warning: { bg: '#FF9800', color: '#212121', icon: '⚠️' }
+    success: { bg: '#4CAF50', color: 'white', icon: <CheckCircle2 size={24} /> },
+    error: { bg: '#f44336', color: 'white', icon: <XCircle size={24} /> },
+    info: { bg: '#2196F3', color: 'white', icon: <Info size={24} /> },
+    warning: { bg: '#FF9800', color: '#212121', icon: <AlertTriangle size={24} /> }
   };
 
   const { bg, color, icon } = colors[type];
@@ -48,7 +49,7 @@ export function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
         maxWidth: '500px'
       }}
     >
-      <span style={{ fontSize: '1.5rem' }}>{icon}</span>
+      <span style={{ display: 'flex', flexShrink: 0 }}>{icon}</span>
       <span style={{ flex: 1, fontSize: '1rem', fontWeight: 500 }}>{message}</span>
       <button
         onClick={onClose}

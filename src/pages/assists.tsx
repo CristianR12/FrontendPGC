@@ -1,15 +1,21 @@
 // src/pages/assists.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { AsistenciaTable } from '../components/AsistenciaTable';
 import { Toast } from '../components/Toast';
 import asistenciaService from "../services/asistenciaService";
-import type { Asistencia } from "../services/asistenciaService";
+import type { Asistencia, PaginaTodas } from "../services/asistenciaService";
+import { EditarAsistenciaModal } from "../components/EditarAsistenciaModal";
+import { GenerarReporteModal } from "../components/GenerarReporteModal";
+import horarioApiService from "../services/horarioApiService";
+import type { Course } from "../services/horarioApiService";
+import { etiquetaAsignatura } from "../utils/filtroInicio";
+import { todayDateStringBogota } from "../utils/vistaInicioAsistencias";
 import {
   ChartBarIcon,
   ArrowPathIcon,
+  DocumentTextIcon,
   MagnifyingGlassIcon,
   TrashIcon,
   CheckCircleIcon,
@@ -19,17 +25,24 @@ import {
 } from '@heroicons/react/24/solid';
 
 export function AsistenciasPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
+  const [datos, setDatos] = useState<PaginaTodas | null>(null);
+  const [reporteAbierto, setReporteAbierto] = useState(false);
+  const [cursos, setCursos] = useState<Course[]>([]);
+  const [asistenciaEditando, setAsistenciaEditando] = useState<Asistencia | null>(null);
   const [nombresEstudiantes, setNombresEstudiantes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [cargandoPagina, setCargandoPagina] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtroAsignatura, setFiltroAsignatura] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
-  const [asignaturasUnicas, setAsignaturasUnicas] = useState<string[]>([]);
+  const [busquedaAplicada, setBusquedaAplicada] = useState("");
+  const [recarga, setRecarga] = useState(0);
+  const [pagina, setPagina] = useState<{ clave: string; n: number }>({ clave: '', n: 1 });
+
+  // Al cambiar cualquier filtro se vuelve a la primera página
+  const claveFiltro = `${filtroAsignatura}|${filtroEstado}|${busquedaAplicada}`;
+  const paginaActual = pagina.clave === claveFiltro ? pagina.n : 1;
 
   // Notificaciones
   const [notification, setNotification] = useState<{
@@ -42,53 +55,44 @@ export function AsistenciasPage() {
     setNotification({ show: true, message, type });
   };
 
+  // Cursos del docente: el reporte necesita saber en qué asignaturas, grupos y días hay clase
   useEffect(() => {
-    cargarAsistencias();
+    horarioApiService.getHorariosProfesor().then(setCursos).catch(() => undefined);
   }, []);
 
-  const cargarAsistencias = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // La búsqueda espera a que termines de escribir para no consultar en cada tecla
+  useEffect(() => {
+    const t = setTimeout(() => setBusquedaAplicada(busqueda.trim()), 350);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
-      // 1. Obtener asistencias
-      const data = await asistenciaService.getAll();
-      setAsistencias(data);
-      console.log('✅ Asistencias cargadas:', data.length);
-
-      // 2. Extraer cédulas únicas
-      const cedulasUnicas = [...new Set(data.map(a => a.estudiante))];
-      console.log('📋 Cédulas únicas encontradas:', cedulasUnicas.length);
-
-      // 3. Obtener nombres en batch (paralelo)
-      if (cedulasUnicas.length > 0) {
-        const nombres = await asistenciaService.getNombresEstudiantes(cedulasUnicas);
-        setNombresEstudiantes(nombres);
-        console.log('✅ Nombres cargados:', Object.keys(nombres).length);
-      }
-
-      // 4. Extraer asignaturas únicas dinámicamente de Firebase
-      const asignaturasSet = new Set(
-        data
-          .map(a => a.asignatura)
-          .filter((asignatura): asignatura is string => asignatura !== null && asignatura !== undefined)
-      );
-      const asignaturas = Array.from(asignaturasSet).sort();
-      setAsignaturasUnicas(asignaturas);
-      console.log('📚 Asignaturas encontradas:', asignaturas);
-
-    } catch (err: any) {
-      console.error("❌ Error al cargar asistencias:", err);
-      const mensaje = err.message || "No se pudieron cargar las asistencias";
-      setError(mensaje);
-      showNotification(mensaje, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Una página a la vez: el servidor filtra, cuenta y envía solo esa sección
+  useEffect(() => {
+    let cancelado = false;
+    setCargandoPagina(true);
+    setError(null);
+    asistenciaService.getTodas({ asignatura: filtroAsignatura, estado: filtroEstado, q: busquedaAplicada, page: paginaActual })
+      .then((d) => {
+        if (cancelado) return;
+        setDatos(d);
+        setNombresEstudiantes((prev) => ({ ...prev, ...d.nombres }));
+      })
+      .catch((err: any) => {
+        if (cancelado) return;
+        const mensaje = err.message || "No se pudieron cargar las asistencias";
+        setError(mensaje);
+        showNotification(mensaje, 'error');
+      })
+      .finally(() => {
+        if (cancelado) return;
+        setCargandoPagina(false);
+        setLoading(false);
+      });
+    return () => { cancelado = true; };
+  }, [claveFiltro, paginaActual, recarga]);
 
   const handleDelete = async (id: string) => {
-    const asistencia = asistencias.find(a => a.id === id);
+    const asistencia = datos?.filas.find(a => a.id === id);
 
     if (!asistencia) {
       showNotification('Asistencia no encontrada', 'error');
@@ -100,49 +104,23 @@ export function AsistenciasPage() {
 
     try {
       await asistenciaService.delete(id);
-      showNotification('✅ Asistencia eliminada', 'success');
-      await cargarAsistencias();
+      showNotification('Asistencia eliminada', 'success');
+      setRecarga((n) => n + 1);
     } catch (err: any) {
       showNotification(err.message || 'Error al eliminar', 'error');
     }
   };
 
   const handleEdit = (id: string) => {
-    navigate(`/asistencias/editar/${id}`);
+    const fila = datos?.filas.find((a) => a.id === id);
+    if (fila) setAsistenciaEditando(fila);
   };
 
-  // Aplicar todos los filtros (incluyendo búsqueda por nombre de estudiante)
-  const asistenciasFiltradas = asistencias.filter(a => {
-    // Filtro por asignatura
-    if (filtroAsignatura && a.asignatura !== filtroAsignatura) return false;
-
-    // Filtro por estado
-    if (filtroEstado && a.estadoAsistencia !== filtroEstado) return false;
-
-    // Búsqueda por nombre de estudiante (usando el nombre real, no la cédula)
-    if (busqueda) {
-      const nombreReal = nombresEstudiantes[a.estudiante] || '';
-      const cedulaStr = a.estudiante.toString();
-      const searchLower = busqueda.toLowerCase();
-
-      const coincideNombre = nombreReal.toLowerCase().includes(searchLower);
-      const coincideCedula = cedulaStr.toLowerCase().includes(searchLower);
-
-      if (!coincideNombre && !coincideCedula) return false;
-    }
-
-    return true;
-  });
-
-  // Función para obtener conteo de asignaturas
-  const getCountAsignatura = (asignatura: string) => {
-    return asistencias.filter(a => a.asignatura === asignatura).length;
-  };
-
-  // Función para obtener conteo de estados
-  const getCountEstado = (estado: string) => {
-    return asistencias.filter(a => a.estadoAsistencia === estado).length;
-  };
+  // Todo viene ya filtrado y contado por el servidor
+  const resumen = datos?.resumen ?? { total: 0, presentes: 0, ausentes: 0, conExcusa: 0 };
+  const getCountAsignatura = (asignatura: string) => datos?.asignaturas.find(a => a.nombre === asignatura)?.total ?? 0;
+  const getCountEstado = (estado: string) => datos?.estados[estado] ?? 0;
+  const asignaturasUnicas = (datos?.asignaturas ?? []).map(a => a.nombre);
 
   if (loading) return <LoadingSpinner message="Cargando asistencias..." />;
 
@@ -153,6 +131,35 @@ export function AsistenciasPage() {
           message={notification.message}
           type={notification.type}
           onClose={() => setNotification({ ...notification, show: false })}
+        />
+      )}
+
+      {reporteAbierto && (() => {
+        // La asignatura que tengas filtrada ("CURSO" o "CURSO - Grupo X") llega elegida en el reporte
+        const u = filtroAsignatura ? cursos.find((c) => etiquetaAsignatura(c) === filtroAsignatura) : undefined;
+        return (
+          <GenerarReporteModal
+            cursos={cursos}
+            inicial={{ curso: u?.nameCourse ?? null, unidadId: u?.id ?? null, fecha: null, hora: null }}
+            hoy={todayDateStringBogota()}
+            oscuro={document.body.classList.contains('dark-mode')}
+            onCerrar={() => setReporteAbierto(false)}
+            onMensaje={showNotification}
+          />
+        );
+      })()}
+
+      {asistenciaEditando && (
+        <EditarAsistenciaModal
+          asistencia={asistenciaEditando}
+          nombre={nombresEstudiantes[asistenciaEditando.estudiante]}
+          oscuro={document.body.classList.contains('dark-mode')}
+          onCerrar={() => setAsistenciaEditando(null)}
+          onGuardado={(mensaje) => {
+            setAsistenciaEditando(null);
+            showNotification(mensaje, 'success');
+            setRecarga((n) => n + 1);
+          }}
         />
       )}
 
@@ -173,22 +180,22 @@ export function AsistenciasPage() {
               Todas las asistencias
             </h2>
             <p style={{ margin: '5px 0 0 0', color: '#666' }}>
-              Histórico completo: {asistenciasFiltradas.length} de {asistencias.length} registros visibles con los filtros actuales
+              Histórico completo: {resumen.total} de {datos?.totalGeneral ?? 0} registros visibles con los filtros actuales
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
-              onClick={cargarAsistencias}
-              disabled={loading}
+              onClick={() => setRecarga((n) => n + 1)}
+              disabled={cargandoPagina}
               style={{
                 padding: '10px 20px',
                 backgroundColor: '#585858ff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.6 : 1,
+                cursor: cargandoPagina ? 'not-allowed' : 'pointer',
+                opacity: cargandoPagina ? 0.6 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -196,6 +203,23 @@ export function AsistenciasPage() {
             >
               <ArrowPathIcon style={{ width: 18, height: 18 }} />
               Actualizar
+            </button>
+            <button
+              onClick={() => setReporteAbierto(true)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <DocumentTextIcon style={{ width: 18, height: 18 }} />
+              Generar reporte
             </button>
           </div>
         </div>
@@ -239,7 +263,7 @@ export function AsistenciasPage() {
             />
             {busqueda && (
               <p style={{ margin: '8px 0 0 0', color: '#999', fontSize: '0.9rem' }}>
-                Se encontraron {asistenciasFiltradas.length} resultado(s)
+                Se encontraron {resumen.total} resultado(s)
               </p>
             )}
           </div>
@@ -268,7 +292,7 @@ export function AsistenciasPage() {
                   transition: 'all 0.3s'
                 }}
               >
-                Todas ({asistencias.length})
+                Todas ({datos?.totalGeneral ?? 0})
               </button>
 
               {asignaturasUnicas.length > 0 ? (
@@ -325,7 +349,7 @@ export function AsistenciasPage() {
                   transition: 'all 0.3s'
                 }}
               >
-                Todos ({asistencias.length})
+                Todos ({datos?.totalGeneral ?? 0})
               </button>
 
               {['Presente', 'Ausente', 'Tiene Excusa'].map(estado => {
@@ -365,6 +389,8 @@ export function AsistenciasPage() {
                   setFiltroAsignatura(null);
                   setFiltroEstado(null);
                   setBusqueda('');
+                  setBusquedaAplicada('');
+                setBusquedaAplicada('');
                 }}
                 style={{
                   padding: '10px 20px',
@@ -388,9 +414,9 @@ export function AsistenciasPage() {
         </div>
 
         {/* Tabla o mensaje vacío */}
-        {error && asistencias.length === 0 ? (
-          <ErrorMessage message={error} onRetry={cargarAsistencias} />
-        ) : asistenciasFiltradas.length === 0 ? (
+        {error && !datos ? (
+          <ErrorMessage message={error} onRetry={() => setRecarga((n) => n + 1)} />
+        ) : resumen.total === 0 ? (
           <div style={{
             background: 'white',
             padding: '60px 20px',
@@ -415,6 +441,7 @@ export function AsistenciasPage() {
                 setFiltroAsignatura(null);
                 setFiltroEstado(null);
                 setBusqueda('');
+                setBusquedaAplicada('');
               }}
               style={{
                 padding: '10px 20px',
@@ -436,16 +463,23 @@ export function AsistenciasPage() {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
           }}>
             <AsistenciaTable
-              asistencias={asistenciasFiltradas}
+              asistencias={datos?.filas ?? []}
               nombresEstudiantes={nombresEstudiantes}
               onDelete={handleDelete}
               onEdit={handleEdit}
+              paginacion={{
+                pagina: datos?.page ?? 1,
+                totalPaginas: datos?.totalPaginas ?? 1,
+                total: resumen.total,
+                cargando: cargandoPagina,
+                onCambiar: (n) => setPagina({ clave: claveFiltro, n }),
+              }}
             />
           </div>
         )}
 
         {/* Estadísticas rápidas */}
-        {asistenciasFiltradas.length > 0 && (
+        {resumen.total > 0 && (
           <div style={{
             marginTop: '30px',
             display: 'grid',
@@ -463,7 +497,7 @@ export function AsistenciasPage() {
                 <SparklesIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#2196F3' }} />
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#2196F3' }}>
-                {asistenciasFiltradas.length}
+                {resumen.total}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#666' }}>Total</div>
             </div>
@@ -479,7 +513,7 @@ export function AsistenciasPage() {
                 <CheckCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#4CAF50' }} />
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
-                {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Presente').length}
+                {resumen.presentes}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#666' }}>Presentes</div>
             </div>
@@ -495,7 +529,7 @@ export function AsistenciasPage() {
                 <XCircleIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#f44336' }} />
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f44336' }}>
-                {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Ausente').length}
+                {resumen.ausentes}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#666' }}>Ausentes</div>
             </div>
@@ -511,7 +545,7 @@ export function AsistenciasPage() {
                 <DocumentCheckIcon style={{ width: 32, height: 32, margin: '0 auto', color: '#FF9800' }} />
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FF9800' }}>
-                {asistenciasFiltradas.filter(a => a.estadoAsistencia === 'Tiene Excusa').length}
+                {resumen.conExcusa}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#666' }}>Con Excusa</div>
             </div>

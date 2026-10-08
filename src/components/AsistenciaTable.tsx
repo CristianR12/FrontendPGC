@@ -1,12 +1,17 @@
+import { formatearFechaHoraAsistencia } from '../utils/fechasAsistencia';
 import React, { useState } from "react";
 import { Edit2, Trash2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { Asistencia } from "../services/asistenciaService";
 
 interface AsistenciaTableProps {
   asistencias: Asistencia[];
-  nombresEstudiantes?: Record<string, string>; // ✅ NUEVO
-  onDelete: (id: string) => void;
-  onEdit: (id: string) => void;
+  nombresEstudiantes?: Record<string, string>; // NUEVO
+  onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
+  /** Vista del estudiante: solo sus propios registros, sin columna de estudiante ni de acciones. */
+  soloLectura?: boolean;
+  /** Paginación del servidor: la tabla muestra tal cual las filas recibidas y pide la página que se elija. */
+  paginacion?: { pagina: number; totalPaginas: number; total: number; cargando?: boolean; onCambiar: (pagina: number) => void };
 }
 
 /**
@@ -14,23 +19,27 @@ interface AsistenciaTableProps {
  */
 export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
   asistencias,
-  nombresEstudiantes = {}, // ✅ NUEVO
+  nombresEstudiantes = {}, // NUEVO
   onDelete,
-  onEdit
+  onEdit,
+  soloLectura = false,
+  paginacion
 }) => {
   const isDarkMode = document.body.classList.contains('dark-mode');
 
-  // ✅ PAGINADO
+  // PAGINADO
   const ITEMS_POR_PAGINA = 10;
-  const [paginaActual, setPaginaActual] = useState(1);
+  const [paginaLocal, setPaginaLocal] = useState(1);
 
-  // Calcular índices
-  const indiceInicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-  const indiceFin = indiceInicio + ITEMS_POR_PAGINA;
-  const asistenciasActuales = asistencias.slice(indiceInicio, indiceFin);
-  const totalPaginas = Math.ceil(asistencias.length / ITEMS_POR_PAGINA);
+  // Con paginación del servidor las filas ya vienen de a una página; si no, se parte la lista aquí
+  const paginaActual = paginacion ? paginacion.pagina : paginaLocal;
+  const setPaginaActual = paginacion ? paginacion.onCambiar : setPaginaLocal;
+  const asistenciasActuales = paginacion
+    ? asistencias
+    : asistencias.slice((paginaActual - 1) * ITEMS_POR_PAGINA, paginaActual * ITEMS_POR_PAGINA);
+  const totalPaginas = paginacion ? paginacion.totalPaginas : Math.ceil(asistencias.length / ITEMS_POR_PAGINA);
 
-  // ✅ MOSTRAR SOLO 3 PÁGINAS EN EL MEDIO
+  // MOSTRAR SOLO 3 PÁGINAS EN EL MEDIO
   const getPaginasVisibles = () => {
     const paginas = [];
     let inicio = Math.max(1, paginaActual - 1);
@@ -48,16 +57,6 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
     return paginas;
   };
 
-  const formatFecha = (fecha: string | Date) => {
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
   const getNombreEstudiante = (cedula: string) => {
     const nombre = nombresEstudiantes[cedula];
 
@@ -80,6 +79,20 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
   };
   return (
     <div>
+      <div style={{ position: 'relative' }} aria-busy={!!paginacion?.cargando}>
+      {/* Marca de agua mientras llega una nueva muestra */}
+      {paginacion?.cargando && (
+        <div role="status" aria-live="polite" style={{
+          position: 'absolute', inset: 0, zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: isDarkMode ? 'rgba(30,30,30,0.55)' : 'rgba(255,255,255,0.6)', pointerEvents: 'none', borderRadius: '8px',
+        }}>
+          <span aria-label="Cargando" className="girar-carga" style={{
+            width: '56px', height: '56px', borderRadius: '50%', boxSizing: 'border-box',
+            border: `6px solid ${isDarkMode ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`,
+            borderTopColor: '#4CAF50',
+          }} />
+        </div>
+      )}
       <div className="overflow-x-auto mt-4">
         <table style={{
           minWidth: '100%',
@@ -94,14 +107,14 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
             color: isDarkMode ? '#fff' : '#333'
           }}>
             <tr>
-              <th style={{
+              {!soloLectura && <th style={{
                 padding: '12px',
                 textAlign: 'left',
                 color: isDarkMode ? '#fff' : '#333',
                 borderBottom: isDarkMode ? '2px solid #3d3d3d' : '2px solid #ddd'
               }}>
                 Estudiante
-              </th>
+              </th>}
               <th style={{
                 padding: '12px',
                 textAlign: 'left',
@@ -126,14 +139,14 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
               }}>
                 Estado
               </th>
-              <th style={{
+              {!soloLectura && <th style={{
                 padding: '12px',
                 textAlign: 'center',
                 color: isDarkMode ? '#fff' : '#333',
                 borderBottom: isDarkMode ? '2px solid #3d3d3d' : '2px solid #ddd'
               }}>
                 Acciones
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody>
@@ -154,13 +167,13 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
           e.currentTarget.style.background = 'transparent';
         }}
       >
-        <td style={{
+        {!soloLectura && <td style={{
           padding: '12px',
           color: isDarkMode ? '#fff' : '#333',
           verticalAlign: 'middle'
         }}>
           {getNombreEstudiante(a.estudiante)}
-        </td>
+        </td>}
         <td style={{
           padding: '12px',
           color: isDarkMode ? '#aaa' : '#666',
@@ -173,7 +186,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
           color: isDarkMode ? '#aaa' : '#666',
           verticalAlign: 'middle'
         }}>
-          {formatFecha(a.fechaYhora)}
+          {formatearFechaHoraAsistencia(a)}
         </td>
         <td style={{
           padding: '12px',
@@ -200,7 +213,7 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
             )}
           </div>
         </td>
-        <td style={{
+        {!soloLectura && <td style={{
           padding: '12px',
           textAlign: 'center',
           verticalAlign: 'middle'
@@ -211,62 +224,20 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
             alignItems: 'center',
             gap: '8px'
           }}>
-            <button
-              onClick={() => onEdit(a.id)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: "#667eea",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                transition: "all 0.3s",
-                fontSize: "0.9rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-              }}
-            >
+            <button className="btn-asistencia-editar" onClick={() => onEdit?.(a.id)}>
               <Edit2 size={16} /> Editar
             </button>
-            <button
-              onClick={() => onDelete(a.id)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: "#555",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                transition: "all 0.3s",
-                fontSize: "0.9rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-              }}
-            >
+            <button className="btn-asistencia-eliminar" onClick={() => onDelete?.(a.id)}>
               <Trash2 size={16} /> Eliminar
             </button>
           </div>
-        </td>
+        </td>}
       </tr>
     ))
   ) : (
     <tr>
       <td
-        colSpan={5}
+        colSpan={soloLectura ? 3 : 5}
         style={{
           padding: '20px',
           textAlign: 'center',
@@ -281,8 +252,14 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
 
         </table>
       </div>
+      </div>
 
-      {/* ✅ PAGINADO COMPACTO: Anterior | 1 2 3 ... | Siguiente */}
+      {/* PAGINADO COMPACTO: Anterior | 1 2 3 ... | Siguiente */}
+      {paginacion && paginacion.total > 0 && (
+        <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '0.85rem', color: isDarkMode ? '#aaa' : '#777' }}>
+          Página {paginaActual} de {totalPaginas} · {paginacion.total} {paginacion.total === 1 ? 'registro' : 'registros'}
+        </div>
+      )}
       {totalPaginas > 1 && (
         <div style={{
           display: 'flex',

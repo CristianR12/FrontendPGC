@@ -9,3 +9,8 @@ asistenciaconreconocimiento-firebase-adminsdk.json
 /node_modules
 
 /frontend/node_modules/
+# build y variables de entorno locales
+/dist
+.env
+.env.*
+!.env.example

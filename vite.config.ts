@@ -2,8 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  // En producción se eliminan console.log/debug (imprimen datos de asistencias y UIDs);
+  // console.error y console.warn se conservan para poder depurar.
+  esbuild: mode === 'production' ? { pure: ['console.log', 'console.debug'] } : {},
   server: {
     host: '0.0.0.0', // permite acceso desde la red y túneles externos
     port: 5173,
@@ -21,4 +24,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

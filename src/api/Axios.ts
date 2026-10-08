@@ -3,9 +3,16 @@ import axios from "axios";
 import { auth } from "../firebaseConfig";
 
 const isDevelopment = import.meta.env.DEV;
-const baseURL = isDevelopment ? '/api' : 'http://127.0.0.1:8000/api/';
 
-console.log('🔧 Configuración Axios:', {
+// En desarrollo se usa el proxy de Vite (/api -> localhost:8000).
+// En producción la URL del backend viene de VITE_API_URL (ej: https://mi-backend.onrender.com/api).
+const baseURL: string = isDevelopment ? '/api' : (import.meta.env.VITE_API_URL ?? '');
+
+if (!isDevelopment && !baseURL) {
+  console.error('Falta la variable VITE_API_URL: el frontend no sabe dónde está el backend.');
+}
+
+console.log('Configuración Axios:', {
   isDevelopment,
   baseURL,
   mode: import.meta.env.MODE
@@ -18,40 +25,39 @@ export const api = axios.create({
         'Accept': 'application/json',
     },
     withCredentials: true,
-    timeout: 30000,
+    // El plan gratis de Render duerme el backend y tarda cerca de 1 minuto en despertar.
+    timeout: isDevelopment ? 30000 : 90000,
 });
 
-// Interceptor - enviar UID en headers (sin token)
+// Interceptor - enviar ID token verificable de Firebase
 api.interceptors.request.use(
   async (config) => {
     try {
-      console.log('🔵 Request:', config.method?.toUpperCase(), config.url);
-      
+      console.log('Request:', config.method?.toUpperCase(), config.url);
+
       const user = auth.currentUser;
-      
+
       if (user) {
-        // Enviar UID y datos del usuario en headers personalizados
-        config.headers['X-User-UID'] = user.uid;
-        config.headers['X-User-Email'] = user.email || 'N/A';
-        config.headers['X-User-Name'] = user.displayName || 'Usuario';
-        
-        console.log('👤 UID enviado:', user.uid);
+        const idToken = await user.getIdToken();
+        config.headers['Authorization'] = `Bearer ${idToken}`;
+
+        console.log('Token enviado para UID:', user.uid);
       } else {
-        console.warn('⚠️ No hay usuario autenticado');
+        console.warn('No hay usuario autenticado');
       }
       
       if (config.data) {
-        console.log('📦 Data:', config.data);
+        console.log('Data:', config.data);
       }
       
       return config;
     } catch (error) {
-      console.error('❌ Error en interceptor:', error);
+      console.error('Error en interceptor:', error);
       return Promise.reject(error);
     }
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -59,10 +65,10 @@ api.interceptors.request.use(
 // Interceptor de respuesta
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ Response:', response.status, response.config.url);
+    console.log('Response:', response.status, response.config.url);
     
     if (response.data) {
-      console.log('📥 Data received:', typeof response.data === 'object' 
+      console.log('Data received:', typeof response.data === 'object' 
         ? JSON.stringify(response.data).substring(0, 200) + '...'
         : response.data
       );
@@ -72,7 +78,7 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response) {
-      console.error('❌ Response Error:', {
+      console.error('Response Error:', {
         status: error.response.status,
         data: error.response.data,
         url: error.config?.url
@@ -80,23 +86,23 @@ api.interceptors.response.use(
       
       switch (error.response.status) {
         case 401:
-          console.error('🔒 Error 401: No autenticado');
+          console.error('Error 401: No autenticado');
           throw new Error('No estás autenticado. Por favor, inicia sesión nuevamente.');
         
         case 403:
-          console.error('🔒 Error 403: Acceso denegado');
+          console.error('Error 403: Acceso denegado');
           throw new Error('No tienes permisos para acceder a este recurso');
         
         case 404:
-          console.error('🔍 Error 404: Recurso no encontrado');
+          console.error('Error 404: Recurso no encontrado');
           throw new Error('Recurso no encontrado en el servidor');
         
         case 500:
-          console.error('🔥 Error 500: Error interno del servidor');
+          console.error('Error 500: Error interno del servidor');
           throw new Error('Error interno del servidor. Por favor, intenta más tarde.');
         
         default:
-          console.error(`❌ Error ${error.response.status}:`, error.response.data);
+          console.error(`Error ${error.response.status}:`, error.response.data);
           throw new Error(
             error.response.data?.error || 
             error.response.data?.message || 
@@ -104,12 +110,12 @@ api.interceptors.response.use(
           );
       }
     } else if (error.request) {
-      console.error('📡 No response received:', error.request);
+      console.error('No response received:', error.request);
       throw new Error(
-        'No se pudo conectar con el servidor. Verifica que el backend esté corriendo en http://127.0.0.1:8000'
+        'No se pudo conectar con el servidor. Si lleva un rato sin usarse puede estar despertando (hasta 1 minuto): espera e intenta de nuevo.'
       );
     } else {
-      console.error('⚠️ Error:', error.message);
+      console.error('Error:', error.message);
       throw new Error(error.message || 'Error al realizar la petición');
     }
   }

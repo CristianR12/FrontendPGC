@@ -26,21 +26,21 @@ class ProfesorService {
    */
   async buscarPorUID(uid: string): Promise<ProfesorInfo | null> {
     try {
-      console.log(`🔍 Buscando persona con UID: ${uid}`);
+      console.log(`Buscando persona con UID: ${uid}`);
       
       const personsRef = collection(db, 'person');
       const q = query(personsRef, where('profesorUID', '==', uid), limit(1));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
-        console.log('❌ No se encontró documento en person');
+        console.log('No se encontró documento en person');
         return null;
       }
       
       const doc = querySnapshot.docs[0];
       const data = doc.data();
       
-      console.log('✅ Documento encontrado:', doc.id);
+      console.log('Documento encontrado:', doc.id);
       
       return {
         docId: doc.id,
@@ -51,7 +51,7 @@ class ProfesorService {
       };
       
     } catch (error) {
-      console.error('❌ Error al buscar por UID:', error);
+      console.error('Error al buscar por UID:', error);
       return null;
     }
   }
@@ -61,7 +61,7 @@ class ProfesorService {
    */
   async verificarProfesor(uid: string): Promise<{ esProfesor: boolean; info?: ProfesorInfo }> {
     try {
-      console.log(`🔍 Verificando si ${uid} es profesor...`);
+      console.log(`Verificando si ${uid} es profesor...`);
       
       const profesorInfo = await this.buscarPorUID(uid);
       
@@ -71,15 +71,15 @@ class ProfesorService {
       
       // Verificar que tenga type: "Profesor"
       if (profesorInfo.type !== 'Profesor') {
-        console.log(`❌ El usuario es de tipo: ${profesorInfo.type}`);
+        console.log(`El usuario es de tipo: ${profesorInfo.type}`);
         return { esProfesor: false };
       }
       
-      console.log('✅ Usuario es profesor');
+      console.log('Usuario es profesor');
       return { esProfesor: true, info: profesorInfo };
       
     } catch (error) {
-      console.error('❌ Error al verificar profesor:', error);
+      console.error('Error al verificar profesor:', error);
       return { esProfesor: false };
     }
   }
@@ -90,7 +90,7 @@ class ProfesorService {
    */
   async obtenerCursosProfesor(courseIds: string[]): Promise<CourseInfo[]> {
     try {
-      console.log(`📚 Obteniendo ${courseIds.length} cursos desde Firestore...`);
+      console.log(`Obteniendo ${courseIds.length} cursos desde Firestore...`);
       
       if (courseIds.length === 0) {
         return [];
@@ -102,7 +102,7 @@ class ProfesorService {
       return [];
       
     } catch (error) {
-      console.error('❌ Error al obtener cursos:', error);
+      console.error('Error al obtener cursos:', error);
       return [];
     }
   }
@@ -110,15 +110,15 @@ class ProfesorService {
   /**
    * Obtiene los nombres de las asignaturas del profesor (desde la API)
    */
-  async obtenerNombresAsignaturas(uid: string): Promise<string[]> {
+  async obtenerNombresAsignaturas(_uid: string): Promise<string[]> {
     try {
       // Este método ahora debería usar horarioApiService
       // en lugar de acceder directamente a Firestore
-      console.log('⚠️ Este método debería usar horarioApiService');
+      console.log('Este método debería usar horarioApiService');
       return [];
       
     } catch (error) {
-      console.error('❌ Error al obtener nombres de asignaturas:', error);
+      console.error('Error al obtener nombres de asignaturas:', error);
       return [];
     }
   }

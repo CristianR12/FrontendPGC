@@ -1,12 +1,13 @@
 // src/components/CalendarioHorariosEditable.tsx
 import { useState } from 'react';
-import { Edit2, Save, Trash2, Plus, X, Clock, MapPin, Inbox, Users, Pencil } from 'lucide-react';
+import { Edit2, Save, Trash2, Plus, X, Clock, MapPin, Inbox, Users, Pencil, Upload } from 'lucide-react';
 import horarioApiService from '../services/horarioApiService';
 import type { Course, ScheduleClass } from '../services/horarioApiService';
 import { Toast } from './Toast';
 import { AgregarClaseModal } from './AgregarClaseModal';
 import { CursoFormModal } from './CursoFormModal';
 import { EstudiantesCursoModal } from './EstudiantesCursoModal';
+import { ImportarHorarioModal } from './ImportarHorarioModal';
 import { useColumnas } from '../utils/useColumnas';
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -44,6 +45,7 @@ export function CalendarioHorariosEditable({
   // Gestión de cursos desde las tarjetas "Mis Cursos": solo quien puede editar (el docente)
   const [formularioCurso, setFormularioCurso] = useState<{ abierto: boolean; curso: Course | null }>({ abierto: false, curso: null });
   const [cursoEstudiantes, setCursoEstudiantes] = useState<Course | null>(null);
+  const [importarAbierto, setImportarAbierto] = useState(false);
   const [notification, setNotification] = useState<NotificationType>({
     show: false,
     message: '',
@@ -197,6 +199,15 @@ export function CalendarioHorariosEditable({
           }}
         />
       )}
+      <ImportarHorarioModal
+        abierto={importarAbierto}
+        onCerrar={() => setImportarAbierto(false)}
+        onImportado={async (mensaje) => {
+          setImportarAbierto(false);
+          showNotification(mensaje, 'success');
+          if (onUpdate) await onUpdate();
+        }}
+      />
       {notification.show && (
         <Toast
           message={notification.message}
@@ -604,6 +615,32 @@ export function CalendarioHorariosEditable({
             );
           })}
         </div>
+
+        {isEditable && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '20px' }}>
+            <button
+              onClick={() => setImportarAbierto(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                height: '40px',
+                padding: '0 18px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                background: 'var(--color-uni-suave)',
+                color: 'var(--color-primary)'
+              }}
+            >
+              <Upload size={16} />
+              Subir horario
+            </button>
+          </div>
+        )}
 
         {/* Mis cursos (solo el docente): tarjetas del mismo tamaño, con botones y, siempre al final, "Nuevo curso". El estudiante solo ve su horario. */}
         {isEditable && courses.length > 0 && (

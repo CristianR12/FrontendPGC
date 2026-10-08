@@ -569,13 +569,15 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
         </div>
       </div>
 
-      {/* Contenido Principal */}
-      <div style={{ 
+      {/* Contenido Principal: columna flex para que el pie siempre quede al fondo, sin saltar cuando el contenido carga */}
+      <div style={{
         marginTop: '70px',
         minHeight: 'calc(100vh - 70px)',
+        display: 'flex',
+        flexDirection: 'column',
         transition: 'all 0.3s ease'
       }}>
-        {children}
+        <div style={{ flex: 1 }}>{children}</div>
         <PieLegal oscuro={darkMode} onMisDatos={esProfesor || esEstudiante ? () => setMisDatosAbierto(true) : undefined} />
       </div>
 

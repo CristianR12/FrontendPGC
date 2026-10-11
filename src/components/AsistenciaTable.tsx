@@ -1,5 +1,5 @@
 import { formatearFechaHoraAsistencia } from '../utils/fechasAsistencia';
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Edit2, Trash2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import type { Asistencia } from "../services/asistenciaService";
 
@@ -25,7 +25,17 @@ export const AsistenciaTable: React.FC<AsistenciaTableProps> = ({
   soloLectura = false,
   paginacion
 }) => {
-  const isDarkMode = document.body.classList.contains('dark-mode');
+  // Se lee del DOM en vez de recibirlo por prop; sin esto, la tabla no se entera cuando el tema
+  // cambia desde el menú mientras ella no se vuelve a renderizar por otro motivo, y queda
+  // "congelada" en el modo que tenía cuando se montó.
+  const [isDarkMode, setIsDarkMode] = useState(() => document.body.classList.contains('dark-mode'));
+  useEffect(() => {
+    const revisar = () => setIsDarkMode(document.body.classList.contains('dark-mode'));
+    revisar();
+    const obs = new MutationObserver(revisar);
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
   // PAGINADO
   const ITEMS_POR_PAGINA = 10;

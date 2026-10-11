@@ -5,8 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, FileDown, CalendarClock, UserCheck, UserX, FileWarning } from 'lucide-react';
 import adminAsistenciasApiService from '../services/adminAsistenciasApiService';
-import type { BusquedaAsistenciaAdmin, EstadoAsistencia, FiltroDocente } from '../services/adminAsistenciasApiService';
-import type { Course } from '../services/horarioApiService';
+import type { BusquedaAsistenciaAdmin, CursoFiltroAdmin, EstadoAsistencia, FiltroDocente } from '../services/adminAsistenciasApiService';
 import { etiquetaAsignatura } from '../utils/filtroInicio';
 import { todayDateStringBogota } from '../utils/vistaInicioAsistencias';
 import { GenerarReporteModal } from '../components/GenerarReporteModal';
@@ -26,7 +25,7 @@ export function AdminAsistenciasPage() {
     return () => obs.disconnect();
   }, []);
 
-  const [cursos, setCursos] = useState<Course[]>([]);
+  const [cursos, setCursos] = useState<CursoFiltroAdmin[]>([]);
   const [docentes, setDocentes] = useState<FiltroDocente[]>([]);
   const [curso, setCurso] = useState('');
   const [docente, setDocente] = useState('');
@@ -90,10 +89,26 @@ export function AdminAsistenciasPage() {
 
   const limpiar = () => { setCurso(''); setDocente(''); setFecha(''); setEstado(''); setQ(''); };
 
+  // Un curso tiene un solo docente: elegir un curso deja seleccionado a su docente, y no "todos los
+  // docentes" (eso llevaba a filtros imposibles: curso X con un docente que no lo dicta, 0 resultados).
+  const cambiarCurso = (id: string) => {
+    setCurso(id);
+    if (id) setDocente(cursos.find((c) => c.id === id)?.docenteId || '');
+  };
+
+  // Al elegir un docente, el curso elegido se limpia si no es suyo (mismo motivo: evitar el cruce imposible)
+  const cambiarDocente = (cedula: string) => {
+    setDocente(cedula);
+    if (cedula) setCurso((actual) => (cursos.find((c) => c.id === actual)?.docenteId === cedula ? actual : ''));
+  };
+
   if (cargandoFiltros) return <LoadingSpinner message="Cargando buscador de asistencias..." />;
 
   // El curso filtrado (si hay uno) llega ya elegido en "Generar reporte"
   const unidadFiltrada = curso ? cursos.find((c) => c.id === curso) : undefined;
+  // Cada selector solo ofrece lo que es compatible con lo ya elegido en el otro
+  const cursosOpciones = docente ? cursos.filter((c) => c.docenteId === docente) : cursos;
+  const docentesOpciones = curso ? docentes.filter((d) => d.cedula === unidadFiltrada?.docenteId) : docentes;
 
   const resumen = resultado?.resumen;
   const tarjetasResumen: { icono: React.ReactNode; titulo: string; valor: number; acento: string }[] = [
@@ -135,13 +150,13 @@ export function AdminAsistenciasPage() {
 
           <div style={tarjeta}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '12px' }}>
-              <select aria-label="Curso" value={curso} onChange={(e) => setCurso(e.target.value)} style={campo}>
+              <select aria-label="Curso" value={curso} onChange={(e) => cambiarCurso(e.target.value)} style={campo}>
                 <option value="">Todos los cursos</option>
-                {cursos.map((c) => <option key={c.id} value={c.id}>{etiquetaAsignatura(c)}</option>)}
+                {cursosOpciones.map((c) => <option key={c.id} value={c.id}>{etiquetaAsignatura(c)}</option>)}
               </select>
-              <select aria-label="Docente" value={docente} onChange={(e) => setDocente(e.target.value)} style={campo}>
+              <select aria-label="Docente" value={docente} onChange={(e) => cambiarDocente(e.target.value)} style={campo}>
                 <option value="">Todos los docentes</option>
-                {docentes.map((d) => <option key={d.cedula} value={d.cedula}>{d.nombre}</option>)}
+                {docentesOpciones.map((d) => <option key={d.cedula} value={d.cedula}>{d.nombre}</option>)}
               </select>
               <input aria-label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} style={campo} />
               <select aria-label="Estado" value={estado} onChange={(e) => setEstado(e.target.value as EstadoAsistencia | '')} style={campo}>

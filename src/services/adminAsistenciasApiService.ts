@@ -8,9 +8,14 @@ export interface FiltroDocente {
   nombre: string;
 }
 
+export interface CursoFiltroAdmin extends Course {
+  /** Cédula del docente dueño del curso, ya resuelta por el servidor (para cruzar curso <-> docente). */
+  docenteId: string;
+}
+
 export interface FiltrosAsistenciaAdmin {
   /** Mismas unidades (cursos y subgrupos) que GET /api/horarios/, para alimentar "Generar reporte". */
-  cursos: Course[];
+  cursos: CursoFiltroAdmin[];
   docentes: FiltroDocente[];
 }
 

@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   ShieldCheckIcon,
   ChartBarIcon,
+  MagnifyingGlassIcon,
   MoonIcon,
   SunIcon,
   ArrowRightStartOnRectangleIcon
@@ -176,7 +177,10 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
     ...(esAdmin
       ? [{
           category: 'Administración',
-          items: [{ icon: <ShieldCheckIcon style={{ width: 20, height: 20 }} />, label: 'Docentes y solicitudes', path: '/admin/usuarios' }]
+          items: [
+            { icon: <ShieldCheckIcon style={{ width: 20, height: 20 }} />, label: 'Docentes y solicitudes', path: '/admin/usuarios' },
+            { icon: <MagnifyingGlassIcon style={{ width: 20, height: 20 }} />, label: 'Asistencias generales', path: '/admin/asistencias' },
+          ]
         }]
       : []),
     {
@@ -186,8 +190,13 @@ export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
       ]
     }
   ];
-  // El estudiante solo tiene su Inicio (horario y asistencias propias)
-  const menuItems = esEstudiante ? menuCompleto.slice(0, 1) : menuCompleto;
+  // Un admin que no es también docente o estudiante (no se ha registrado como tal) solo ve su propia sección
+  const soloAdmin = esAdmin && !esProfesor && !esEstudiante;
+  const menuItems = esEstudiante
+    ? menuCompleto.slice(0, 1)
+    : soloAdmin
+      ? menuCompleto.filter((c) => c.category === 'Administración')
+      : menuCompleto;
 
   const isActive = (path: string) => location.pathname === path;
 

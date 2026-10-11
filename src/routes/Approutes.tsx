@@ -30,6 +30,7 @@ import { AsistenciasPage } from '../pages/assists';
 import { MiHorarioPage } from '../pages/MiHorarioPage';
 import { RegistroPage } from '../pages/RegistroPage';
 import { AdminUsuariosPage } from '../pages/AdminUsuariosPage';
+import { AdminAsistenciasPage } from '../pages/AdminAsistenciasPage';
 
 // ============================================
 // IMPORTACIONES PARA ESTADÍSTICAS Y ANÁLISIS
@@ -180,13 +181,23 @@ function AppRoutes() {
           <Route path="/privacidad" element={<DocumentoLegalPage id="privacidad" />} />
 
           {/* Administración de docentes (solo administradores; lo valida el servidor) */}
-          <Route 
-            path="/admin/usuarios" 
+          <Route
+            path="/admin/usuarios"
             element={
               <ProtectedRoute>
                 <AdminUsuariosPage />
               </ProtectedRoute>
-            } 
+            }
+          />
+
+          {/* Buscador de asistencias de todo el sistema (solo administradores; lo valida el servidor) */}
+          <Route
+            path="/admin/asistencias"
+            element={
+              <ProtectedRoute>
+                <AdminAsistenciasPage />
+              </ProtectedRoute>
+            }
           />
 
           {/* El perfil ahora es una ventana flotante en el header */}

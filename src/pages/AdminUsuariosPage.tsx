@@ -156,7 +156,7 @@ export function AdminUsuariosPage() {
           {error && <div role="alert" style={{ ...tarjeta, color: '#b71c1c' }}>{error}</div>}
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {([['solicitudes', `Solicitudes${pendientes.length ? ` (${pendientes.length})` : ''}`], ['autorizados', `Docentes autorizados (${autorizados.length})`], ['datos', `Datos personales${datosPendientes.length ? ` (${datosPendientes.length})` : ''}`]] as const).map(([clave, titulo]) => (
+            {([['datos', `Datos personales${datosPendientes.length ? ` (${datosPendientes.length})` : ''}`], ['autorizados', `Docentes autorizados (${autorizados.length})`], ['solicitudes', `Solicitudes${pendientes.length ? ` (${pendientes.length})` : ''}`]] as const).map(([clave, titulo]) => (
               <button
                 key={clave}
                 aria-pressed={pestana === clave}

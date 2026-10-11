@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { obtenerEstadoSesion, limpiarEstadoSesion } from '../services/sesionService';
+import { useCierreInactividad } from '../hooks/useCierreInactividad';
 import { 
   HomeIcon as HomeIconHero,
   ClipboardIcon,
@@ -31,6 +32,7 @@ interface HeaderWithSidebarProps {
 }
 
 export function HeaderWithSidebar({ children }: HeaderWithSidebarProps) {
+  useCierreInactividad();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

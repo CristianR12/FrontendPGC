@@ -1,5 +1,5 @@
 // src/components/Login.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { auth, provider } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 import {
@@ -40,6 +40,17 @@ export function Login() {
   const closeNotification = () => {
     setNotification({ ...notification, show: false });
   };
+
+  // Si volvimos aquí porque la sesión se cerró sola (inactividad o se venció el tope de horas), avisa por qué
+  useEffect(() => {
+    try {
+      const motivo = localStorage.getItem('motivo_cierre_sesion');
+      if (motivo) {
+        showNotification(motivo, 'info');
+        localStorage.removeItem('motivo_cierre_sesion');
+      }
+    } catch { /* ignorar */ }
+  }, []);
 
   // Login con email y contraseña
   const handleLogin = async (e: React.FormEvent) => {

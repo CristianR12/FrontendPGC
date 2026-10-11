@@ -1,6 +1,19 @@
 // src/api/Axios.ts
 import axios from "axios";
+import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+
+// El servidor rechaza el token pasadas SESSION_MAX_HORAS desde el inicio de sesión (ver obtener_uid_usuario
+// en el backend). Evita cerrar sesión varias veces si varias peticiones fallan con 401 al mismo tiempo.
+let cerrandoSesionPorExpiracion = false;
+
+async function cerrarSesionPorExpiracion(mensaje: string) {
+  if (cerrandoSesionPorExpiracion || !auth.currentUser) return;
+  cerrandoSesionPorExpiracion = true;
+  try { localStorage.setItem('motivo_cierre_sesion', mensaje); } catch { /* ignorar */ }
+  try { await signOut(auth); } catch { /* ignorar */ }
+  window.location.href = '/';
+}
 
 const isDevelopment = import.meta.env.DEV;
 
@@ -85,10 +98,16 @@ api.interceptors.response.use(
       });
       
       switch (error.response.status) {
-        case 401:
+        case 401: {
           console.error('Error 401: No autenticado');
-          throw new Error('No estás autenticado. Por favor, inicia sesión nuevamente.');
-        
+          const esSesionExpirada = error.response.data?.codigo === 'sesion_expirada';
+          const mensaje = esSesionExpirada
+            ? 'Tu sesión expiró por seguridad. Inicia sesión de nuevo.'
+            : 'Tu sesión ya no es válida. Inicia sesión de nuevo.';
+          cerrarSesionPorExpiracion(mensaje);
+          throw new Error(mensaje);
+        }
+
         case 403:
           console.error('Error 403: Acceso denegado');
           throw new Error('No tienes permisos para acceder a este recurso');
